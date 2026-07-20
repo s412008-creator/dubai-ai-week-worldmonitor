@@ -5,15 +5,13 @@ import Globe from "react-globe.gl";
 
 export default function GlobeTracker({ homeless, stations, movements }) {
   const globeEl = useRef();
+  const containerRef = useRef();
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
 
   useEffect(() => {
     const handleResize = () => {
-      if (globeEl.current) {
-        const parent = globeEl.current.parentElement;
-        if (parent) {
-          setDimensions({ width: parent.clientWidth, height: 600 });
-        }
+      if (containerRef.current) {
+        setDimensions({ width: containerRef.current.clientWidth, height: 600 });
       }
     };
     handleResize();
@@ -23,9 +21,15 @@ export default function GlobeTracker({ homeless, stations, movements }) {
 
   useEffect(() => {
     // Focus on Dubai initially
-    if (globeEl.current) {
-      globeEl.current.pointOfView({ lat: 25.2048, lng: 55.2708, altitude: 0.5 }, 2000);
-    }
+    setTimeout(() => {
+      if (globeEl.current && typeof globeEl.current.pointOfView === 'function') {
+        try {
+          globeEl.current.pointOfView({ lat: 25.2048, lng: 55.2708, altitude: 0.5 }, 2000);
+        } catch (e) {
+          console.error("Globe focus error:", e);
+        }
+      }
+    }, 500);
   }, []);
 
   // Format data for globe
@@ -55,7 +59,7 @@ export default function GlobeTracker({ homeless, stations, movements }) {
   }));
 
   return (
-    <div ref={globeEl} style={{ width: '100%', height: '600px', borderRadius: '1rem', overflow: 'hidden', border: '1px solid var(--border)' }}>
+    <div ref={containerRef} style={{ width: '100%', height: '600px', borderRadius: '1rem', overflow: 'hidden', border: '1px solid var(--border)' }}>
       <Globe
         ref={globeEl}
         width={dimensions.width}
