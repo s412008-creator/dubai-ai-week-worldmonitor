@@ -17,18 +17,18 @@ export function useAppStore() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem('oasisData');
+    const stored = localStorage.getItem('amsterdamData');
     if (stored) {
       setData(JSON.parse(stored));
     } else {
       const initData = { ...initialMockData, movements: [] };
       setData(initData);
-      localStorage.setItem('oasisData', JSON.stringify(initData));
+      localStorage.setItem('amsterdamData', JSON.stringify(initData));
     }
     setIsLoaded(true);
 
     const handleStorage = (e) => {
-      if (e.key === 'oasisData' && e.newValue) {
+      if (e.key === 'amsterdamData' && e.newValue) {
         setData(JSON.parse(e.newValue));
       }
     };
