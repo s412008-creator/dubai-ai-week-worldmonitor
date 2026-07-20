@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Map, Smartphone, RefreshCw } from 'lucide-react';
-import { useAppStore } from '../../hooks/useAppStore';
+import { useAppStore } from '../hooks/useAppStore';
 
 export default function LandingPage() {
   const { resetData } = useAppStore();

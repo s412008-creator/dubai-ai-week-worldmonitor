@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { MapPin, Navigation, User, Utensils, AlertTriangle } from 'lucide-react';
-import { useAppStore, calculateDistance } from '../../../hooks/useAppStore';
+import { useAppStore, calculateDistance } from '../../hooks/useAppStore';
 
 export default function MobileApp() {
   const { data, isLoaded, claimFood } = useAppStore();
