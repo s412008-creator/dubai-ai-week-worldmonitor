@@ -1,14 +1,16 @@
 {
   "homeless": [
-    { "id": "h1", "name": "John D.", "lat": 25.2048, "lng": 55.2708, "status": "Idle", "lastUpdate": "10 mins ago" },
-    { "id": "h2", "name": "Anonymous 12", "lat": 25.2150, "lng": 55.2800, "status": "Moving", "lastUpdate": "2 mins ago" },
-    { "id": "h3", "name": "Michael S.", "lat": 25.1950, "lng": 55.2600, "status": "Idle", "lastUpdate": "1 hour ago" },
-    { "id": "h4", "name": "Anonymous 08", "lat": 25.2250, "lng": 55.2900, "status": "Idle", "lastUpdate": "5 mins ago" }
+    { "id": "h1", "name": "John D.", "lat": 52.3731, "lng": 4.8922, "status": "Idle", "lastUpdate": "10 mins ago" },
+    { "id": "h2", "name": "Anonymous 12", "lat": 52.3600, "lng": 4.8850, "status": "Moving", "lastUpdate": "2 mins ago" },
+    { "id": "h3", "name": "Sarah M.", "lat": 52.3650, "lng": 4.9100, "status": "Recently Claimed Food", "lastUpdate": "Just now" }
   ],
   "foodStations": [
-    { "id": "s1", "name": "Spinneys Supermarket (Downtown)", "lat": 25.2000, "lng": 55.2750, "surplus": ["Bread", "Vegetables"], "quantity": "15kg" },
-    { "id": "s2", "name": "Atlantis Hotel (Leftovers)", "lat": 25.1305, "lng": 55.1171, "surplus": ["Cooked Meals", "Fruits"], "quantity": "30kg" },
-    { "id": "s3", "name": "Carrefour (Mall of the Emirates)", "lat": 25.1181, "lng": 55.2006, "surplus": ["Canned Soup", "Dairy"], "quantity": "20kg" },
-    { "id": "s4", "name": "Jumeirah Beach Hotel", "lat": 25.1413, "lng": 55.1906, "surplus": ["Pastries", "Sandwiches"], "quantity": "10kg" }
+    { "id": "s1", "name": "Albert Heijn (Dam Square)", "lat": 52.3734, "lng": 4.8914, "surplus": "15kg", "type": "Supermarket" },
+    { "id": "s2", "name": "Waldorf Astoria (Leftovers)", "lat": 52.3644, "lng": 4.8966, "surplus": "30kg", "type": "Hotel" },
+    { "id": "s3", "name": "Jumbo (Museumplein)", "lat": 52.3565, "lng": 4.8771, "surplus": "20kg", "type": "Supermarket" }
+  ],
+  "movements": [
+    { "id": "m1", "startLat": 52.3731, "startLng": 4.8922, "endLat": 52.3734, "endLng": 4.8914, "color": "#10B981" },
+    { "id": "m2", "startLat": 52.3600, "startLng": 4.8850, "endLat": 52.3644, "endLng": 4.8966, "color": "#3B82F6" }
   ]
 }

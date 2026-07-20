@@ -37,7 +37,7 @@ export default function DashboardPage() {
     <div className="container" style={{ maxWidth: '1400px' }}>
       <header style={{ textAlign: 'left', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div>
-          <h1>WorldMonitor: Dubai AI Week</h1>
+          <h1>WorldMonitor: Amsterdam</h1>
           <p className="subtitle">Real-time 3D tracking of homeless movements and food stations</p>
         </div>
         <div style={{ background: 'var(--surface)', padding: '0.5rem 1rem', borderRadius: '2rem', border: '1px solid var(--border)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
