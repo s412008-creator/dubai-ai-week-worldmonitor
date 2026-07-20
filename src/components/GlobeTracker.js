@@ -11,10 +11,14 @@ export default function GlobeTracker({ homeless, stations, movements }) {
   useEffect(() => {
     const handleResize = () => {
       if (containerRef.current) {
-        setDimensions({ width: containerRef.current.clientWidth, height: 600 });
+        setDimensions({ 
+          width: containerRef.current.clientWidth, 
+          height: containerRef.current.clientHeight 
+        });
       }
     };
-    handleResize();
+    // Use a small timeout to let the DOM settle for flexbox layouts
+    setTimeout(handleResize, 50);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -59,7 +63,7 @@ export default function GlobeTracker({ homeless, stations, movements }) {
   }));
 
   return (
-    <div ref={containerRef} style={{ width: '100%', height: '600px', borderRadius: '1rem', overflow: 'hidden', border: '1px solid var(--border)' }}>
+    <div ref={containerRef} style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
       <Globe
         ref={globeEl}
         width={dimensions.width}
