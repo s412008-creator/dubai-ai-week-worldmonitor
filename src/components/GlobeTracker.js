@@ -20,11 +20,11 @@ export default function GlobeTracker({ homeless, stations, movements }) {
   }, []);
 
   useEffect(() => {
-    // Focus on Dubai initially
+    // Focus on Dubai initially (zoomed in closer for city scale)
     setTimeout(() => {
       if (globeEl.current && typeof globeEl.current.pointOfView === 'function') {
         try {
-          globeEl.current.pointOfView({ lat: 25.2048, lng: 55.2708, altitude: 0.5 }, 2000);
+          globeEl.current.pointOfView({ lat: 25.2048, lng: 55.2708, altitude: 0.1 }, 2000);
         } catch (e) {
           console.error("Globe focus error:", e);
         }
@@ -37,14 +37,14 @@ export default function GlobeTracker({ homeless, stations, movements }) {
     ...homeless.map(h => ({
       lat: h.lat,
       lng: h.lng,
-      size: 0.5,
+      size: 0.05, // scaled down for city view
       color: h.status === 'Recently Claimed Food' ? '#F59E0B' : '#94A3B8',
       label: h.name
     })),
     ...stations.map(s => ({
       lat: s.lat,
       lng: s.lng,
-      size: 1.5,
+      size: 0.1, // scaled down for city view
       color: '#10B981',
       label: s.name
     }))
@@ -53,9 +53,9 @@ export default function GlobeTracker({ homeless, stations, movements }) {
   const ringsData = stations.map(s => ({
     lat: s.lat,
     lng: s.lng,
-    maxR: 1,
-    propagationSpeed: 1,
-    repeatPeriod: 1000
+    maxR: 0.1, // scaled down to 0.1 degrees
+    propagationSpeed: 0.05,
+    repeatPeriod: 1500
   }));
 
   return (
