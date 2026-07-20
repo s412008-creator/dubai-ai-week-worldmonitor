@@ -62,7 +62,7 @@ export default function GlobeTracker({ homeless, stations, movements }) {
         height={dimensions.height}
         globeImageUrl="//unpkg.com/three-globe/example/img/earth-dark.jpg"
         bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
-        backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
+        backgroundColor="rgba(0,0,0,0)"
         
         // Markers for homeless & stations
         pointsData={markers}
