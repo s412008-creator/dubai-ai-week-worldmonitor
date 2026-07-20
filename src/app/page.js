@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import { MapPin, Users, Navigation2, Activity } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import { useAppStore } from '../../hooks/useAppStore';
+import { useAppStore } from '../hooks/useAppStore';
 
 // Dynamically import Globe to avoid SSR issues with canvas/window
-const GlobeTracker = dynamic(() => import('../../components/GlobeTracker'), { ssr: false });
+const GlobeTracker = dynamic(() => import('../components/GlobeTracker'), { ssr: false });
 
 export default function DashboardPage() {
   const { data, isLoaded } = useAppStore();
