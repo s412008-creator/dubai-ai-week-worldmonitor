@@ -21,9 +21,9 @@ export default function DashboardPage() {
     
     setTimeout(() => {
       if (claimedCount > 0) {
-        setAiInsight(`AI Insight: Detected ${claimedCount} successful food claims recently. Significant movement towards Downtown stations. Recommend increasing supply at Spinneys.`);
+        setAiInsight(`AI Insight: Detected ${claimedCount} successful food claims recently. Significant movement towards Center stations. Recommend increasing supply at Albert Heijn.`);
       } else if (movingCount > 0) {
-        setAiInsight(`AI Insight: ${movingCount} individuals are currently mobile. Expected demand at Jumeirah Beach Hotel station in 30 mins.`);
+        setAiInsight(`AI Insight: ${movingCount} individuals are currently mobile. Expected demand at Museumplein station in 30 mins.`);
       } else {
         setAiInsight("AI Insight: Population is currently stable. Surplus food levels are adequate across all stations.");
       }
@@ -75,7 +75,7 @@ export default function DashboardPage() {
                     <span className="item-title" style={{ fontSize: '0.9rem' }}>{station.name}</span>
                   </div>
                   <div className="item-details" style={{ fontSize: '0.8rem' }}>
-                    <span style={{ color: 'var(--primary)' }}>Surplus: {station.quantity}</span>
+                    <span style={{ color: 'var(--primary)' }}>Surplus: {station.surplus}</span>
                   </div>
                 </div>
               ))}

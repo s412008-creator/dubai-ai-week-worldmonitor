@@ -20,11 +20,11 @@ export default function GlobeTracker({ homeless, stations, movements }) {
   }, []);
 
   useEffect(() => {
-    // Focus on Amsterdam initially (zoomed in closer for city scale)
+    // Focus on Amsterdam initially
     setTimeout(() => {
       if (globeEl.current && typeof globeEl.current.pointOfView === 'function') {
         try {
-          globeEl.current.pointOfView({ lat: 52.3676, lng: 4.9041, altitude: 0.1 }, 2000);
+          globeEl.current.pointOfView({ lat: 52.3676, lng: 4.9041, altitude: 0.8 }, 2000);
         } catch (e) {
           console.error("Globe focus error:", e);
         }
