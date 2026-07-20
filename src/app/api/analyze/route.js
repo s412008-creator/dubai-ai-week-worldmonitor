@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+export const runtime = 'edge';
 
 // Initialize Gemini API (Make sure process.env.GEMINI_API_KEY is set in .env.local)
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "mock-key");
