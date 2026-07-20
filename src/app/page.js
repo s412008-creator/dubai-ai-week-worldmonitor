@@ -1,65 +1,160 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+import { 
+  Leaf, 
+  Flame, 
+  Utensils, 
+  MapPin, 
+  Activity,
+  Send,
+  Loader2
+} from "lucide-react";
+import mockData from "../data/mock.json";
+
+export default function Dashboard() {
+  const [input, setInput] = useState("50kg leftover rice, 20kg expired sour milk, 30kg fresh apples, 10kg pork bones");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+
+  const analyzeFood = async () => {
+    if (!input.trim()) return;
+    setLoading(true);
+    setError("");
+    
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ foodInput: input, mockData }),
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to analyze");
+      
+      setResult(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <div className="container">
+      <header>
+        <h1>Oasis AI: Food Sustainability</h1>
+        <p className="subtitle">Intelligent surplus food distribution for Dubai AI Week</p>
+      </header>
+
+      <div className="grid-2">
+        {/* Input Section */}
+        <section className="glass-panel">
+          <h2><Leaf className="inline-block mr-2 text-primary" size={24} /> Input Surplus Food</h2>
+          <div className="input-group">
+            <label htmlFor="food-input">List today's surplus items and quantities:</label>
+            <textarea 
+              id="food-input"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="e.g., 50kg rice, 10kg spoiled tomatoes..."
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          </div>
+          <button 
+            onClick={analyzeFood} 
+            disabled={loading || !input}
           >
-            Documentation
-          </a>
+            {loading ? <Loader2 className="spinner" size={20} /> : <Send size={20} />}
+            {loading ? "Analyzing via Gemini AI..." : "Analyze & Distribute"}
+          </button>
+          {error && <p style={{ color: '#EF4444', marginTop: '1rem' }}>{error}</p>}
+        </section>
+
+        {/* Overview Stats Section */}
+        {result && (
+          <section className="glass-panel">
+            <h2><Activity className="inline-block mr-2 text-primary" size={24} /> Impact Overview</h2>
+            <div className="grid-2" style={{ gap: '1rem', marginTop: '1.5rem' }}>
+              <div className="stat-card">
+                <span className="stat-value text-primary">{result.summary.totalCalories.toLocaleString()}</span>
+                <span className="stat-label">Total Calories Saved</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-value edible">{result.summary.edibleItems}</span>
+                <span className="stat-label">Edible Batches</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-value inedible">{result.summary.inedibleItems}</span>
+                <span className="stat-label">Inedible (Energy/Feed)</span>
+              </div>
+            </div>
+          </section>
+        )}
+      </div>
+
+      {/* Results Section */}
+      {result && (
+        <div style={{ marginTop: '2rem' }}>
+          <h2 style={{ textAlign: 'center', marginBottom: '2rem' }}>Smart Distribution Plan</h2>
+          
+          <div className="grid-2">
+            {/* Edible List */}
+            <div className="glass-panel">
+              <h3 style={{ marginBottom: '1rem', color: 'var(--accent-edible)' }}>
+                <Utensils className="inline-block mr-2" size={20} />
+                Human Consumption (Shelters)
+              </h3>
+              <ul className="result-list">
+                {result.edible.map((item, idx) => (
+                  <li key={idx} className="result-item">
+                    <div className="item-header">
+                      <span className="item-title">{item.item}</span>
+                      <span className="badge edible">EDIBLE</span>
+                    </div>
+                    <div className="item-details">
+                      <span style={{ color: 'var(--text-main)' }}><strong>{item.calories} kcal</strong></span>
+                      <span>Macros: P {item.macros.protein} | C {item.macros.carbs} | F {item.macros.fat}</span>
+                      <span style={{ marginTop: '0.5rem', color: 'var(--primary)' }}>
+                        <MapPin size={14} className="inline mr-1" />
+                        Destination: {item.destination}
+                      </span>
+                      <span style={{ fontStyle: 'italic', marginTop: '0.25rem' }}>{item.reason}</span>
+                    </div>
+                  </li>
+                ))}
+                {result.edible.length === 0 && <p className="text-muted">No edible items identified.</p>}
+              </ul>
+            </div>
+
+            {/* Inedible List */}
+            <div className="glass-panel">
+              <h3 style={{ marginBottom: '1rem', color: 'var(--accent-inedible)' }}>
+                <Flame className="inline-block mr-2" size={20} />
+                Energy & Agriculture
+              </h3>
+              <ul className="result-list">
+                {result.inedible.map((item, idx) => (
+                  <li key={idx} className="result-item">
+                    <div className="item-header">
+                      <span className="item-title">{item.item}</span>
+                      <span className="badge inedible">INEDIBLE</span>
+                    </div>
+                    <div className="item-details">
+                      <span style={{ color: 'var(--primary)' }}>
+                        <MapPin size={14} className="inline mr-1" />
+                        Destination: {item.destination}
+                      </span>
+                      <span style={{ fontStyle: 'italic', marginTop: '0.25rem' }}>{item.reason}</span>
+                    </div>
+                  </li>
+                ))}
+                {result.inedible.length === 0 && <p className="text-muted">No inedible items identified.</p>}
+              </ul>
+            </div>
+          </div>
         </div>
-      </main>
+      )}
     </div>
   );
 }

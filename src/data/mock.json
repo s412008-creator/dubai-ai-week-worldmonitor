@@ -1,0 +1,38 @@
+{
+  "shelters": [
+    {
+      "id": "S1",
+      "name": "Deira Community Shelter",
+      "population": 150,
+      "needs": "High protein and complex carbs"
+    },
+    {
+      "id": "S2",
+      "name": "Al Qusais Relief Center",
+      "population": 80,
+      "needs": "Balanced meals, vitamin-rich"
+    },
+    {
+      "id": "S3",
+      "name": "Bur Dubai Food Bank",
+      "population": 220,
+      "needs": "High calorie, bulk meals"
+    }
+  ],
+  "powerPlants": [
+    {
+      "id": "P1",
+      "name": "Warsan Biomass Energy Plant",
+      "capacity": "High",
+      "accepts": "Spoiled dairy, organic sludges, oils"
+    }
+  ],
+  "farms": [
+    {
+      "id": "F1",
+      "name": "Al Lisaili Composting & Animal Feed",
+      "capacity": "Medium",
+      "accepts": "Vegetable scraps, fruit peels, grains"
+    }
+  ]
+}
