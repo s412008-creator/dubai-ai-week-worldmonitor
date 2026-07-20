@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+@import 'leaflet/dist/leaflet.css';
+
+/* Fix Leaflet map sizing issues */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: #050505 !important;
+}
+
 :root {
   --primary: #10B981;
   --primary-hover: #059669;
