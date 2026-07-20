@@ -5,8 +5,8 @@ import { Shield, Crosshair, AlertTriangle, Battery, Navigation, Globe2, Radio, T
 import dynamic from 'next/dynamic';
 import { useAppStore } from '../hooks/useAppStore';
 
-// Dynamically import Leaflet Map to avoid SSR issues
-const MapTracker = dynamic(() => import('../components/MapTracker'), { ssr: false });
+// Dynamically import DeckGL Map to avoid SSR issues
+const DeckGLTracker = dynamic(() => import('../components/DeckGLTracker'), { ssr: false });
 
 export default function DashboardPage() {
   const { data, isLoaded } = useAppStore();
@@ -78,10 +78,13 @@ export default function DashboardPage() {
       <div className="main-content">
         {/* Map Area */}
         <div className="map-area">
-          <MapTracker 
-            homeless={layers.homeless ? data.homeless : []}
-            stations={layers.stations ? data.foodStations : []}
-            movements={layers.movements ? (data.movements || []) : []}
+          <DeckGLTracker 
+            homeless={data.homeless}
+            stations={data.foodStations}
+            movements={data.movements || []}
+            showHeatmap={layers.homeless}
+            showStations={layers.stations}
+            showMovements={layers.movements}
           />
         </div>
 

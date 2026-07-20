@@ -19,6 +19,17 @@ const initialMockData = {
   ]
 };
 
+const extraHomeless = Array.from({ length: 80 }).map((_, i) => ({
+  id: `h-extra-${i}`,
+  name: `Target Node ${i+20}`,
+  lat: 52.3676 + (Math.random() - 0.5) * 0.03, // cluster around centrum
+  lng: 4.9041 + (Math.random() - 0.5) * 0.03,
+  status: 'Idle',
+  lastUpdate: 'Just now'
+}));
+
+initialMockData.homeless = [...initialMockData.homeless, ...extraHomeless];
+
 export const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const p = 0.017453292519943295;
   const c = Math.cos;
