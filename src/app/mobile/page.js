@@ -1,22 +1,22 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { MapPin, Navigation, User, Utensils, AlertTriangle } from 'lucide-react';
-import { useAppStore, calculateDistance } from '../../hooks/useAppStore';
+import { AlertTriangle } from 'lucide-react';
 
 export default function MobileApp() {
-  const { data, isLoaded, claimFood } = useAppStore();
-  const [currentUser, setCurrentUser] = useState(null);
-
-  useEffect(() => {
-    if (isLoaded && data.homeless.length > 0) {
-      // For demo purposes, we auto-login as the first homeless person
-      setCurrentUser(data.homeless[0]);
-    }
-  }, [isLoaded, data.homeless]);
-
-  if (!isLoaded || !currentUser) {
-    return <div className="container" style={{ textAlign: 'center', marginTop: '20vh' }}>Loading App...</div>;
+  return (
+    <div style={{ 
+      maxWidth: '400px', margin: '0 auto', minHeight: '100vh', 
+      background: 'var(--background)', color: '#fff', padding: '2rem', textAlign: 'center' 
+    }}>
+      <AlertTriangle size={48} color="var(--primary)" style={{ margin: '0 auto 1rem' }} />
+      <h2>Mobile Client Offline</h2>
+      <p style={{ color: 'var(--text-muted)' }}>
+        The Care Monitor mobile client is currently being upgraded to support the new FoodBridge routing engine. 
+        Please use the main command center dashboard.
+      </p>
+    </div>
+  );
+}p: '20vh' }}>Loading App...</div>;
   }
 
   // Calculate distance to all stations and sort them
