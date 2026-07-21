@@ -1,76 +1,107 @@
 "use client";
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import DeckGL from '@deck.gl/react';
-import { ScatterplotLayer, PathLayer, ArcLayer } from '@deck.gl/layers';
+import { ScatterplotLayer, ArcLayer, PathLayer } from '@deck.gl/layers';
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
+import { TripsLayer } from '@deck.gl/geo-layers';
 import Map from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
-const INITIAL_VIEW_STATE = { longitude: 4.8952, latitude: 52.3702, zoom: 12.5, pitch: 45, bearing: 0 };
+const INITIAL_VIEW_STATE = { longitude: 4.8952, latitude: 52.3702, zoom: 12, pitch: 55, bearing: -15 };
 
-// Generate mock data for the dense background map
 const AMSTERDAM_CENTER = [4.8952, 52.3702];
-const generatePoints = (count, radius = 0.05) => {
-  return Array.from({ length: count }).map(() => ({
-    lng: AMSTERDAM_CENTER[0] + (Math.random() - 0.5) * radius * 2,
-    lat: AMSTERDAM_CENTER[1] + (Math.random() - 0.5) * radius
-  }));
-};
+const randomPoint = (radius) => [AMSTERDAM_CENTER[0] + (Math.random() - 0.5) * radius * 2, AMSTERDAM_CENTER[1] + (Math.random() - 0.5) * radius];
 
-const mockCctvs = generatePoints(200, 0.08);
-const mockHotspots = generatePoints(50, 0.04);
-const mockMilitary = generatePoints(15, 0.1);
-const mockPipelines = Array.from({length: 30}).map(() => ({
-  startLng: AMSTERDAM_CENTER[0] + (Math.random() - 0.5) * 0.1,
-  startLat: AMSTERDAM_CENTER[1] + (Math.random() - 0.5) * 0.05,
-  endLng: AMSTERDAM_CENTER[0] + (Math.random() - 0.5) * 0.1,
-  endLat: AMSTERDAM_CENTER[1] + (Math.random() - 0.5) * 0.05
+// Generate intense mock data for "God Mode"
+const EUROPE_NODES = [
+  [2.3522, 48.8566], [-0.1276, 51.5074], [13.4050, 52.5200], [4.3517, 50.8503], // Paris, London, Berlin, Brussels
+  [9.1900, 45.4642], [-3.7038, 40.4168], [14.4378, 50.0755], [21.0122, 52.2297], // Milan, Madrid, Prague, Warsaw
+  [18.0686, 59.3293], [10.7522, 59.9139], [12.4964, 41.9028], [23.7275, 37.9838] // Stockholm, Oslo, Rome, Athens
+].concat(Array.from({length: 40}).map(() => [AMSTERDAM_CENTER[0] + (Math.random()-0.5)*30, AMSTERDAM_CENTER[1] + (Math.random()-0.5)*20]));
+
+const MOCK_ARCS = EUROPE_NODES.map(coord => ({
+  start: AMSTERDAM_CENTER,
+  end: coord,
+  type: Math.random() > 0.5 ? 'outbound' : 'inbound'
 }));
 
-export default function DeckGLTracker({ 
-  homeless, stations, movements, 
-  layersActive 
-}) {
+const MOCK_TRIPS = Array.from({length: 100}).map(() => {
+  const t0 = Math.random() * 1000;
+  return {
+    path: [randomPoint(0.1), randomPoint(0.05), AMSTERDAM_CENTER, randomPoint(0.05), randomPoint(0.1)],
+    timestamps: [t0, t0 + 200, t0 + 400, t0 + 600, t0 + 800],
+    color: Math.random() > 0.5 ? [16, 185, 129] : [59, 130, 246]
+  };
+});
+
+const mockHotspots = Array.from({length: 50}).map(() => ({ pos: randomPoint(0.08) }));
+const mockBases = Array.from({length: 8}).map(() => ({ pos: randomPoint(0.15) }));
+
+export default function DeckGLTracker({ homeless, stations, movements, layersActive }) {
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const [time, setTime] = useState(0);
+  const animationRef = useRef(null);
+
+  useEffect(() => {
+    setMounted(true);
+    const animate = () => {
+      setTime(t => (t + 1) % 1000);
+      animationRef.current = requestAnimationFrame(animate);
+    };
+    animate();
+    return () => cancelAnimationFrame(animationRef.current);
+  }, []);
 
   const layers = useMemo(() => {
     const layerArray = [];
 
-    // Background Mock Layers (for density)
-    if (layersActive.cctv) {
+    // 1. ArcLayer: Dense global connections (God Mode)
+    if (layersActive.pipelines) { // Re-using this toggle for global arcs
       layerArray.push(
-        new ScatterplotLayer({
-          id: 'mock-cctv', data: mockCctvs, getPosition: d => [d.lng, d.lat],
-          getFillColor: [100, 150, 255, 120], getRadius: 30, radiusMinPixels: 2
+        new ArcLayer({
+          id: 'mock-global-arcs', data: MOCK_ARCS,
+          getSourcePosition: d => d.start, getTargetPosition: d => d.end,
+          getSourceColor: d => d.type === 'outbound' ? [16, 185, 129, 150] : [239, 68, 68, 150],
+          getTargetColor: d => d.type === 'outbound' ? [16, 185, 129, 0] : [239, 68, 68, 0],
+          getWidth: 2
         })
       );
     }
+
+    // 2. TripsLayer: Flowing data/logistics (Premium Animation)
+    if (layersActive.cctv) {
+      layerArray.push(
+        new TripsLayer({
+          id: 'mock-trips', data: MOCK_TRIPS,
+          getPath: d => d.path, getTimestamps: d => d.timestamps, getColor: d => d.color,
+          opacity: 0.8, widthMinPixels: 3, rounded: true, trailLength: 200, currentTime: time
+        })
+      );
+    }
+
+    // 3. Pulsing Scatterplot (Radar Simulation)
+    if (layersActive.military) {
+      const pulseRadius = (time % 100) * 10;
+      layerArray.push(
+        new ScatterplotLayer({
+          id: 'mock-military-bases', data: mockBases, getPosition: d => d.pos,
+          getFillColor: [234, 179, 8, 200], getRadius: 100, radiusMinPixels: 4, stroked: true, getLineColor: [255,255,255]
+        }),
+        new ScatterplotLayer({
+          id: 'mock-military-pulse', data: mockBases, getPosition: d => d.pos,
+          getFillColor: [0, 0, 0, 0], getRadius: pulseRadius, radiusMinPixels: 4, stroked: true, getLineColor: [234, 179, 8, 255 - (pulseRadius/1000)*255], lineWidthMinPixels: 2
+        })
+      );
+    }
+
     if (layersActive.hotspots) {
       layerArray.push(
         new HeatmapLayer({
-          id: 'mock-hotspots', data: mockHotspots, getPosition: d => [d.lng, d.lat],
-          getWeight: () => 1, radiusPixels: 60, intensity: 1,
+          id: 'mock-hotspots', data: mockHotspots, getPosition: d => d.pos,
+          getWeight: () => 1, radiusPixels: 40, intensity: 1.2,
           colorRange: [[25,22,22,50], [239,68,68,150], [239,68,68,200]]
-        })
-      );
-    }
-    if (layersActive.military) {
-      layerArray.push(
-        new ScatterplotLayer({
-          id: 'mock-military', data: mockMilitary, getPosition: d => [d.lng, d.lat],
-          getFillColor: [234, 179, 8, 200], getRadius: 100, radiusMinPixels: 4, stroked: true, getLineColor: [255,255,255]
-        })
-      );
-    }
-    if (layersActive.pipelines) {
-      layerArray.push(
-        new ArcLayer({
-          id: 'mock-pipelines', data: mockPipelines,
-          getSourcePosition: d => [d.startLng, d.startLat], getTargetPosition: d => [d.endLng, d.endLat],
-          getSourceColor: [100, 100, 100, 100], getTargetColor: [200, 200, 200, 100], getWidth: 2
         })
       );
     }
@@ -104,7 +135,7 @@ export default function DeckGLTracker({
     }
 
     return layerArray;
-  }, [homeless, stations, movements, layersActive]);
+  }, [homeless, stations, movements, layersActive, time]);
 
   if (!mounted) return null;
 
