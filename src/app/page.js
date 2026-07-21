@@ -104,8 +104,8 @@ export default function DashboardPage() {
 
       const nbhd = getNeighborhoods().find(n => n.id === r.neighborhood);
       if (!nbhd) return;
-      const startLat = nbhd.lat + (Math.random() - 0.5) * 0.005;
-      const startLng = nbhd.lon + (Math.random() - 0.5) * 0.005;
+      const startLat = nbhd.lat + (Math.random() - 0.5) * 0.08;
+      const startLng = nbhd.lon + (Math.random() - 0.5) * 0.08;
       
       deckData.stations.push({ lat: startLat, lng: startLng, name: r.sourceName });
       if (r.routing.kind === 'shelter') {
@@ -218,8 +218,8 @@ export default function DashboardPage() {
         <div className="ticker-track">
           {Array.from({length: 20}).map((_, i) => (
             <span key={i} style={{marginRight: '30px'}}>
-              <span className="led led-green" style={{marginRight: 6, animationDelay: `${Math.random()}s`}}></span>
-              [STREAM_ID_{Math.random().toString(36).substring(2,6).toUpperCase()}] INTERCEPT: {Math.random()*90}N, {Math.random()*180}E - PKT_SIZE: {Math.max(5, Math.floor(Math.random()*1024))}MB
+              <span className="led led-green" style={{marginRight: 6, animationDelay: `${(i*0.3)%2}s`}}></span>
+              [STREAM_ID_{((i*314159)%10000).toString(16).toUpperCase()}] INTERCEPT: {((i*12.34)%90).toFixed(4)}N, {((i*43.21)%180).toFixed(4)}E - PKT_SIZE: {Math.max(5, Math.floor((i*98.76)%1024))}MB
             </span>
           ))}
         </div>
@@ -285,7 +285,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Left Layer Panel */}
-        <div className="panel" style={{ position: 'absolute', top: '1rem', left: '1rem', width: '260px', bottom: '1rem', zIndex: 20 }}>
+        <div className="panel" style={{ position: 'absolute', top: '1rem', left: '1rem', width: '260px', bottom: '270px', zIndex: 20 }}>
           <Target className="spin-slow" size={16} color="rgba(255,255,255,0.1)" style={{position: 'absolute', top: 4, right: 4}} />
           <div className="panel-header"><span>LAYERS</span><span>▼</span></div>
           <div style={{ flex: 1, overflowY: 'auto' }}>

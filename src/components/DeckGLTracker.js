@@ -144,7 +144,7 @@ export default function DeckGLTracker({ homeless, stations, movements, layersAct
           getTargetPosition: d => [d.endLng, d.endLat],
           getSourceColor: d => d.color, 
           getTargetColor: d => [d.color[0], d.color[1], d.color[2], 50],
-          getWidth: 3, getHeight: 0.1
+          getWidth: 1, getHeight: 0.2
         })
       );
     }
