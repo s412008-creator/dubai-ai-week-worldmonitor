@@ -2,3 +2,8 @@ name = "dubai-ai-week-project"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".vercel/output/static"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dubai-ai-week-worldmonitor-auth"
+database_id = "b903855d-3005-419d-baeb-255c8a33d524"

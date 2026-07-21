@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Globe2, Crosshair, AlertTriangle, Target, Settings, Maximize, Search, PlusCircle, Trash2, Video, Activity, CheckSquare, Square, Info, Plug, TrendingUp, CloudRain } from 'lucide-react';
+import { Globe2, Crosshair, AlertTriangle, Target, Settings, Maximize, Search, PlusCircle, Trash2, Video, Activity, CheckSquare, Square, Info, Plug, TrendingUp, CloudRain, LogOut } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useAppStore } from '../hooks/useAppStore';
 import { classify, computeNutritionStatic, routeEdible, routeInedible, predictHotelWaste, getNeighborhoods, uid } from '../utils/triageEngine';
@@ -74,6 +74,11 @@ export default function DashboardPage() {
   }, []);
   
   const toggleLayer = (key) => setLayers(prev => ({ ...prev, [key]: !prev[key] }));
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    window.location.href = '/login';
+  };
 
   // DeckGL data preparation
   const deckData = { movements: [], homeless: [], stations: [] };
@@ -229,6 +234,9 @@ export default function DashboardPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '10px', color: '#0ea5e9', fontFamily: 'monospace' }}>
           {timeStr}
           <input type="password" placeholder="Claude API Key (Option)" value={apiKey} onChange={e => setApiKey(e.target.value)} style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid #333', color: '#fff', padding: '4px', width: '120px' }} />
+          <button className="btn" onClick={handleLogout} style={{ color: 'var(--accent-red)' }}>
+            <LogOut size={12} style={{ display: 'inline', marginRight: 4 }} /> LOGOUT
+          </button>
         </div>
       </header>
 
