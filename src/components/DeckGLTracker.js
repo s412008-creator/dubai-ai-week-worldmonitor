@@ -40,7 +40,7 @@ const MOCK_ARCS = Array.from({length: 120}).map(() => {
 const MOCK_TRIPS = Array.from({length: 100}).map(() => {
   const t0 = Math.random() * 1000;
   return {
-    path: [randomPoint(0.1), randomPoint(0.05), AMSTERDAM_CENTER, randomPoint(0.05), randomPoint(0.1)],
+    path: [randomPoint(0.1), randomPoint(0.08), randomPoint(0.05), randomPoint(0.08), randomPoint(0.1)],
     timestamps: [t0, t0 + 200, t0 + 400, t0 + 600, t0 + 800],
     color: Math.random() > 0.5 ? [16, 185, 129] : [59, 130, 246]
   };
@@ -138,9 +138,13 @@ export default function DeckGLTracker({ homeless, stations, movements, layersAct
 
     if (layersActive.routes && movements.length > 0) {
       layerArray.push(
-        new PathLayer({
-          id: 'real-movements', data: movements, getPath: d => [[d.startLng, d.startLat], [d.endLng, d.endLat]],
-          getColor: d => d.color, getWidth: 4, widthMinPixels: 2, opacity: 0.8
+        new ArcLayer({
+          id: 'real-movements', data: movements, 
+          getSourcePosition: d => [d.startLng, d.startLat], 
+          getTargetPosition: d => [d.endLng, d.endLat],
+          getSourceColor: d => d.color, 
+          getTargetColor: d => [d.color[0], d.color[1], d.color[2], 50],
+          getWidth: 3, getHeight: 0.1
         })
       );
     }
