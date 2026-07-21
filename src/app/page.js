@@ -1,12 +1,22 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Globe2, Crosshair, AlertTriangle, Battery, Target, Menu, Settings, Maximize, Search, PlusCircle, Trash2, Video, Radio, Activity, CheckSquare, Square, Info } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Globe2, Crosshair, AlertTriangle, Target, Settings, Maximize, Search, PlusCircle, Trash2, Video, Activity, CheckSquare, Square, Info, Plug, TrendingUp, CloudRain } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useAppStore } from '../hooks/useAppStore';
-import { classify, computeNutritionStatic, routeEdible, routeInedible, getNeighborhoods, uid } from '../utils/triageEngine';
+import { classify, computeNutritionStatic, routeEdible, routeInedible, predictHotelWaste, getNeighborhoods, uid } from '../utils/triageEngine';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const DeckGLTracker = dynamic(() => import('../components/DeckGLTracker'), { ssr: false });
+
+const HISTORY_SEED = [
+  { day: 'Mon', supermarket: 118, restaurant: 54, hotel: 38 },
+  { day: 'Tue', supermarket: 132, restaurant: 61, hotel: 42 },
+  { day: 'Wed', supermarket: 109, restaurant: 58, hotel: 35 },
+  { day: 'Thu', supermarket: 145, restaurant: 66, hotel: 51 },
+  { day: 'Fri', supermarket: 160, restaurant: 80, hotel: 74 },
+  { day: 'Sat', supermarket: 171, restaurant: 92, hotel: 88 }
+];
 
 export default function DashboardPage() {
   const { records, isLoaded, addRecord, clearRecords } = useAppStore();
@@ -20,10 +30,17 @@ export default function DashboardPage() {
   
   const toggleLayer = (key) => setLayers(prev => ({ ...prev, [key]: !prev[key] }));
 
-  // Convert records to DeckGL data format
+  // DeckGL data preparation
   const deckData = { movements: [], homeless: [], stations: [] };
+  let kpiStats = { records: 0, weightKg: 0, meals: 0, energy: 0 };
+  
   if (isLoaded) {
+    kpiStats.records = records.length;
     records.forEach(r => {
+      kpiStats.weightKg += r.weightKg || 0;
+      if (r.classification === 'edible' && r.nutrition) kpiStats.meals += r.nutrition.meals || 0;
+      if (r.classification === 'inedible' && r.routing) kpiStats.energy += r.routing.energyEstimate || 0;
+
       const nbhd = getNeighborhoods().find(n => n.id === r.neighborhood);
       if (!nbhd) return;
       const startLat = nbhd.lat + (Math.random() - 0.5) * 0.005;
@@ -42,14 +59,84 @@ export default function DashboardPage() {
     });
   }
 
+  // Chart data preparation
+  const chartData = useMemo(() => {
+    const todayTotals = { supermarket: 0, restaurant: 0, hotel: 0 };
+    records.forEach(r => {
+      if (todayTotals[r.sourceType] !== undefined) {
+        todayTotals[r.sourceType] += r.weightKg;
+      }
+    });
+
+    const data = [...HISTORY_SEED];
+    data.push({
+      day: 'Today',
+      supermarket: Math.round(todayTotals.supermarket),
+      restaurant: Math.round(todayTotals.restaurant),
+      hotel: Math.round(todayTotals.hotel)
+    });
+
+    // Forecast logic (avg of last 3 days * weather factor)
+    const weatherFactor = 1.1; // Simulated warm weather (+10%)
+    const last3 = data.slice(-3);
+    const avg = (key) => last3.reduce((sum, d) => sum + d[key], 0) / 3;
+    
+    data.push({
+      day: 'Tomorrow',
+      supermarket: Math.round(avg('supermarket') * weatherFactor),
+      restaurant: Math.round(avg('restaurant') * weatherFactor),
+      hotel: Math.round(avg('hotel') * weatherFactor)
+    });
+
+    return data;
+  }, [records]);
+
   const handleIntakeSubmit = async (e) => {
     e.preventDefault();
-    const r = {
-      id: uid(), sourceType: formData.sourceType, sourceName: formData.sourceName || 'Unknown', neighborhood: formData.neighborhood,
-      category: formData.category, weightKg: Number(formData.weightKg), condition: formData.condition,
-      timestamp: new Date().toISOString(), isPredicted: false
-    };
-    const cls = classify(r.condition);
+    await processAndAddRecord(formData.sourceType, formData.sourceName || 'Unknown', formData.neighborhood, formData.category, Number(formData.weightKg), formData.condition);
+    setShowIntake(false);
+  };
+
+  const handlePmsConnect = async (pmsType) => {
+    // Simulated PMS fetch
+    const pmsData = {
+      waterfront: { name: 'Hotel Amstel Waterfront', nbhd: 'centrum', rooms: 220, occ: 82, brk: true, rest: true, banq: true, guests: 60 },
+      business: { name: 'Hotel Zuidplein Business', nbhd: 'zuid', rooms: 150, occ: 68, brk: true, rest: false, banq: false, guests: 0 },
+      view: { name: 'Hotel Oost Canal View', nbhd: 'oost', rooms: 90, occ: 75, brk: true, rest: true, banq: false, guests: 0 }
+    }[pmsType];
+
+    const pred = predictHotelWaste(pmsData.rooms, pmsData.occ, pmsData.brk, pmsData.rest, pmsData.banq, pmsData.guests);
+    const baseTs = new Date().toISOString();
+    
+    if (pred.edibleKg > 0) {
+      const r = {
+        id: uid(), sourceType: 'hotel', sourceName: pmsData.name, neighborhood: pmsData.nbhd,
+        category: 'mixed_hotel_surplus', weightKg: pred.edibleKg, condition: 'predicted',
+        timestamp: baseTs, isPredicted: true, classification: 'edible',
+        classificationReason: `Predicted edible portion from occupancy model (${Math.round(pmsData.occ)}% occ).`
+      };
+      r.nutrition = computeNutritionStatic(r.weightKg, r.category);
+      r.routing = { kind: 'shelter', allocations: routeEdible(r.neighborhood, r.nutrition.meals) };
+      addRecord(r);
+      await fetchAIRationale(r);
+    }
+    if (pred.inedibleKg > 0) {
+      const r = {
+        id: uid(), sourceType: 'hotel', sourceName: pmsData.name, neighborhood: pmsData.nbhd,
+        category: 'mixed_hotel_surplus', weightKg: pred.inedibleKg, condition: 'predicted',
+        timestamp: baseTs, isPredicted: true, classification: 'inedible',
+        classificationReason: `Predicted inedible/prep-scrap from occupancy model.`
+      };
+      r.routing = { kind: 'facility', ...routeInedible(r.neighborhood, r.category, r.weightKg) };
+      addRecord(r);
+      await fetchAIRationale(r);
+    }
+    setShowIntake(false);
+  };
+
+  const processAndAddRecord = async (sourceType, sourceName, neighborhood, category, weightKg, condition) => {
+    const r = { id: uid(), sourceType, sourceName, neighborhood, category, weightKg, condition, timestamp: new Date().toISOString(), isPredicted: false };
+    const cls = classify(condition);
     r.classification = cls.classification;
     r.classificationReason = cls.reason;
 
@@ -59,23 +146,17 @@ export default function DashboardPage() {
     } else {
       r.routing = { kind: 'facility', ...routeInedible(r.neighborhood, r.category, r.weightKg) };
     }
-
     addRecord(r);
-    setShowIntake(false);
+    await fetchAIRationale(r);
+  };
 
-    if (apiKey) {
-      try {
-        const res = await fetch('/api/ai-reasoning', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ record: r, apiKey })
-        });
-        const data = await res.json();
-        if (data.rationale) alert("Claude AI Reason: " + data.rationale);
-      } catch(e) {
-        console.error("AI Error:", e);
-      }
-    }
+  const fetchAIRationale = async (record) => {
+    if (!apiKey) return;
+    try {
+      const res = await fetch('/api/ai-reasoning', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ record, apiKey }) });
+      const data = await res.json();
+      if (data.rationale) alert(`Claude AI Reason for ${record.sourceName}:\n${data.rationale}`);
+    } catch(e) { console.error("AI Error:", e); }
   };
 
   if (!isLoaded) return <div style={{ padding: '2rem', color: '#fff', background: '#000', height: '100vh' }}>INITIALIZING ENGINE...</div>;
@@ -86,35 +167,16 @@ export default function DashboardPage() {
       <header className="top-nav">
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <Globe2 size={16} color="#10B981" />
-          <div style={{ display: 'flex', gap: '4px' }}>
-            {[1,2,3,4].map(i => <div key={i} style={{width: 8, height: 8, background: i===1?'#10B981':'#333'}} />)}
-          </div>
+          <div style={{ display: 'flex', gap: '4px' }}>{[1,2,3,4].map(i => <div key={i} style={{width: 8, height: 8, background: i===1?'#10B981':'#333'}} />)}</div>
           <div style={{ fontWeight: 'bold', letterSpacing: '2px', fontSize: '14px' }}>MONITOR</div>
-          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>v3.10.0  @care_monitor</span>
+          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>FoodBridge Engine Active</span>
           
-          <div style={{ display: 'flex', alignItems: 'center', background: '#111', border: '1px solid #333', borderRadius: '4px', padding: '2px', marginLeft: '1rem' }}>
-            <span style={{ fontSize: '10px', padding: '0 8px' }}>AMSTERDAM</span>
-            <div style={{ background: '#222', padding: '2px 8px', fontSize: '10px' }}>▼</div>
-          </div>
-          
-          <button style={{ background: 'rgba(16,185,129,0.1)', color: '#10B981', border: '1px solid #10B981', padding: '2px 8px', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Target size={12}/> MISSION
-          </button>
-          
-          <button style={{ background: '#EF4444', color: '#fff', border: 'none', padding: '2px 8px', fontSize: '10px', fontWeight: 'bold' }}>
-            CRISIS LEVEL 5
+          <button style={{ background: 'rgba(16,185,129,0.1)', color: '#10B981', border: '1px solid #10B981', padding: '2px 8px', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '1rem' }}>
+            <Target size={12}/> AMSTERDAM TRIAGE
           </button>
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '10px', color: 'var(--text-muted)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Search size={14} /> 搜索
-          </div>
-          <div style={{ borderLeft: '1px solid #333', height: '24px' }}></div>
-          <button className="btn">Embed</button>
-          <button className="btn"><Maximize size={12} /></button>
-          <button className="btn"><Settings size={12} /></button>
-          <button className="btn-primary" style={{ padding: '4px 12px' }}>登錄</button>
           <input type="password" placeholder="Claude API Key (Option)" value={apiKey} onChange={e => setApiKey(e.target.value)} style={{ background: '#111', border: '1px solid #333', color: '#fff', padding: '4px', width: '120px' }} />
         </div>
       </header>
@@ -130,49 +192,52 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Global Coordinates Overlay */}
-        <div style={{ position: 'absolute', top: '1rem', left: '0', right: '0', textAlign: 'center', pointerEvents: 'none', zIndex: 20 }}>
-          <span style={{ background: 'rgba(0,0,0,0.6)', padding: '4px 12px', fontSize: '12px', letterSpacing: '1px', border: '1px solid #333' }}>
-            TUE, 21 JUL 2026 06:26:16 UTC
-          </span>
+        {/* Floating KPI Stats (Top Right) */}
+        <div style={{ position: 'absolute', top: '1rem', right: '1rem', display: 'flex', gap: '0.5rem', zIndex: 20 }}>
+          <KpiBox label="Records Processed" value={kpiStats.records} color="#10B981" />
+          <KpiBox label="Kg Surplus Tracked" value={kpiStats.weightKg.toFixed(1)} color="#3B82F6" />
+          <KpiBox label="Meals Redistributable" value={kpiStats.meals.toFixed(1)} color="#10B981" />
+          <KpiBox label="kWh Energy (est.)" value={kpiStats.energy.toFixed(0)} color="#F59E0B" />
         </div>
 
         {/* Left Layer Panel */}
         <div className="panel" style={{ position: 'absolute', top: '1rem', left: '1rem', width: '260px', bottom: '1rem', zIndex: 20, display: 'flex', flexDirection: 'column' }}>
-          <div className="panel-header">
-            <span>圖層 (LAYERS)</span>
-            <span>▼</span>
-          </div>
-          <div style={{ padding: '8px' }}>
-            <input type="text" placeholder="搜索圖層..." style={{ width: '100%', background: '#111', border: '1px solid #333', color: '#fff', padding: '6px', fontSize: '11px' }} />
-          </div>
-          
+          <div className="panel-header"><span>圖層 (LAYERS)</span><span>▼</span></div>
           <div style={{ flex: 1, overflowY: 'auto' }}>
-            <LayerToggle active={layers.hotspots} onClick={() => toggleLayer('hotspots')} icon={<AlertTriangle size={14} color="#EF4444"/>} label="情報熱點 (High Need)" />
-            <LayerToggle active={layers.cctv} onClick={() => toggleLayer('cctv')} icon={<Video size={14} color="#3B82F6"/>} label="網路攝影機 (CCTVs)" />
-            <LayerToggle active={layers.stations} onClick={() => toggleLayer('stations')} icon={<Globe2 size={14} color="#10B981"/>} label="合作站點 (Stations)" />
-            <LayerToggle active={layers.destinations} onClick={() => toggleLayer('destinations')} icon={<Target size={14} color="#10B981"/>} label="分配中心 (Shelters)" />
-            <LayerToggle active={layers.routes} onClick={() => toggleLayer('routes')} icon={<Activity size={14} color="#F59E0B"/>} label="調度路線 (Routes)" />
-            <LayerToggle active={layers.military} onClick={() => toggleLayer('military')} icon={<Crosshair size={14} color="#EAB308"/>} label="軍事基地 (Mock Logistics)" />
-            <LayerToggle active={layers.pipelines} onClick={() => toggleLayer('pipelines')} icon={<Activity size={14} color="#666"/>} label="海底電纜 (Mock Pipes)" />
+            <LayerToggle active={layers.hotspots} onClick={() => toggleLayer('hotspots')} icon={<AlertTriangle size={14} color="#EF4444"/>} label="高需求熱點 (High Need)" />
+            <LayerToggle active={layers.cctv} onClick={() => toggleLayer('cctv')} icon={<Video size={14} color="#3B82F6"/>} label="路口監視網路 (CCTVs)" />
+            <LayerToggle active={layers.stations} onClick={() => toggleLayer('stations')} icon={<Globe2 size={14} color="#10B981"/>} label="食物站/超市 (Sources)" />
+            <LayerToggle active={layers.destinations} onClick={() => toggleLayer('destinations')} icon={<Target size={14} color="#10B981"/>} label="庇護所 (Destinations)" />
+            <LayerToggle active={layers.routes} onClick={() => toggleLayer('routes')} icon={<Activity size={14} color="#F59E0B"/>} label="實際調度路線 (Routes)" />
           </div>
-
           <div style={{ padding: '12px', borderTop: '1px solid #333' }}>
             <button className="btn-primary" style={{ width: '100%', padding: '8px' }} onClick={() => setShowIntake(!showIntake)}>
               <PlusCircle size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} /> 
-              部署調度任務 (NEW INTAKE)
+              新增調度 (INTAKE FORM)
             </button>
           </div>
         </div>
 
-        {/* Floating Intake Modal (If active) */}
+        {/* Floating Intake Modal */}
         {showIntake && (
           <div className="panel" style={{ position: 'absolute', top: '1rem', left: '290px', width: '320px', zIndex: 30 }}>
             <div className="panel-header" style={{ background: '#10B981', color: '#000' }}>
-              <span>部署任務 (INTAKE)</span>
+              <span>新增調度任務</span>
               <button onClick={() => setShowIntake(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>X</button>
             </div>
+            
+            {/* Hotel PMS Mock Area */}
+            <div style={{ padding: '12px', borderBottom: '1px dashed #333' }}>
+              <div style={{ fontSize: '10px', color: '#888', marginBottom: '8px' }}>HOTEL PMS 模擬預測 (預先填入即期餐點)</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                <button className="btn" style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handlePmsConnect('waterfront')}><Plug size={10}/> Waterfront</button>
+                <button className="btn" style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handlePmsConnect('business')}><Plug size={10}/> Business</button>
+                <button className="btn" style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handlePmsConnect('view')}><Plug size={10}/> Canal View</button>
+              </div>
+            </div>
+
             <form onSubmit={handleIntakeSubmit} style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11px' }}>
+              <div style={{ fontSize: '10px', color: '#888' }}>手動建檔 (超市/餐廳)</div>
               <select value={formData.sourceType} onChange={e => setFormData({...formData, sourceType: e.target.value})} style={{ width: '100%', background: '#111', color: '#fff', border: '1px solid #333', padding: '6px' }}>
                 <option value="supermarket">超市 (Supermarket)</option>
                 <option value="restaurant">餐廳 (Restaurant)</option>
@@ -192,86 +257,83 @@ export default function DashboardPage() {
                 <option value="near_expiry">即期 (Near Expiry)</option>
                 <option value="spoiled">壞掉 (Spoiled)</option>
               </select>
-              <button type="submit" className="btn-primary" style={{ marginTop: '8px', padding: '8px' }}>執行分配</button>
+              <button type="submit" className="btn-primary" style={{ marginTop: '8px', padding: '8px' }}>執行手動分類與指派</button>
             </form>
           </div>
         )}
 
       </div>
 
-      {/* Bottom Grid Panels */}
-      <div className="bottom-grid">
+      {/* Bottom Grid Panels: Replaced fake UI with FoodBridge features */}
+      <div className="bottom-grid" style={{ gridTemplateColumns: '1.2fr 2fr' }}>
         
-        {/* Col 1: News */}
+        {/* Forecast Chart Panel */}
         <div className="panel">
           <div className="panel-header">
-            <span style={{ color: '#fff' }}>實時新聞 <span style={{ color: '#EF4444' }}>● 93</span></span>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <Maximize size={12}/> <Settings size={12}/>
-            </div>
+            <span style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: '4px' }}><TrendingUp size={12}/> AI 剩食總量預測 (Forecast Panel)</span>
+            <span style={{ fontSize: '9px', display: 'flex', alignItems: 'center', gap: '4px' }}><CloudRain size={10}/> Tomorrow: 20°C / +10% factor</span>
           </div>
-          <div style={{ padding: '12px', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-            <span className="badge badge-red">BLOOMBERG</span>
-            <span className="badge" style={{ background: '#222' }}>SKYNEWS</span>
-            <span className="badge" style={{ background: '#222' }}>EURONEWS</span>
-            <span className="badge" style={{ background: '#222' }}>CNN</span>
-          </div>
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444', marginBottom: '8px', boxShadow: '0 0 8px #EF4444' }}></div>
-            <span style={{ fontSize: '10px', color: '#888' }}>準備就緒，隨時可播</span>
-            <span style={{ fontSize: '16px', fontWeight: 'bold', marginTop: '4px' }}>Bloomberg</span>
-            <button style={{ border: '1px solid #EF4444', color: '#EF4444', background: 'transparent', padding: '4px 12px', fontSize: '10px', marginTop: '12px' }}>播放直播源</button>
+          <div style={{ flex: 1, padding: '12px', fontSize: '10px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                <XAxis dataKey="day" stroke="#888" tick={{fontSize: 10}} />
+                <YAxis stroke="#888" tick={{fontSize: 10}} />
+                <RechartsTooltip contentStyle={{ background: '#111', border: '1px solid #333' }} itemStyle={{ fontSize: '11px' }} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
+                <Bar dataKey="supermarket" stackId="a" fill="#3B82F6" name="Supermarket (kg)" />
+                <Bar dataKey="restaurant" stackId="a" fill="#8B5CF6" name="Restaurant (kg)" />
+                <Bar dataKey="hotel" stackId="a" fill="#D97706" name="Hotel Predicted (kg)" />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Col 2: Webcams */}
-        <div className="panel" style={{ borderLeft: '1px solid #333', borderRight: '1px solid #333' }}>
-          <div className="panel-header">
-            <span style={{ color: '#fff' }}>實時網路攝像頭 <span style={{ color: '#EF4444' }}>● 23</span></span>
-            <Maximize size={12}/>
-          </div>
-          <div style={{ padding: '8px', display: 'flex', gap: '12px', borderBottom: '1px solid #222', fontSize: '10px' }}>
-            <span style={{ background: '#EF4444', padding: '2px 8px', borderRadius: '2px' }}>全部</span>
-            <span style={{ color: '#888' }}>中東</span>
-            <span style={{ color: '#888' }}>歐洲</span>
-            <span style={{ color: '#888' }}>太空</span>
-          </div>
-          <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px', background: '#000' }}>
-             <div style={{ background: '#111', position: 'relative' }}><span style={{position:'absolute', bottom: 4, left: 4, fontSize: '9px', color: '#666'}}>CAM 01 - CENTRUM</span></div>
-             <div style={{ background: '#111', position: 'relative' }}><span style={{position:'absolute', bottom: 4, left: 4, fontSize: '9px', color: '#666'}}>CAM 02 - ZUID</span></div>
-          </div>
-        </div>
-
-        {/* Col 3: AI & Records */}
+        {/* Detailed Records Table Panel */}
         <div className="panel">
           <div className="panel-header">
-            <span style={{ color: '#fff' }}>AI洞察 & 調度歷史</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ color: '#10B981', display: 'flex', alignItems: 'center', gap: '4px' }}><div style={{width:6,height:6,borderRadius:'50%',background:'#10B981'}}></div>實時</span>
-              <Settings size={12}/>
-            </div>
+            <span style={{ color: '#fff' }}>詳細處理紀錄 (Processed Records)</span>
+            <button onClick={clearRecords} style={{ background: 'transparent', border: 'none', color: 'var(--accent-red)', cursor: 'pointer' }}><Trash2 size={12}/></button>
           </div>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {records.map(r => (
-              <div key={r.id} style={{ background: '#1A1A1A', border: '1px solid #333', padding: '8px', borderRadius: '4px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '10px', color: '#888' }}><Globe2 size={10} style={{display:'inline'}}/> 系統匯報</span>
-                  <span className={r.classification === 'edible' ? "badge badge-green" : "badge badge-red"}>{r.classification.toUpperCase()}</span>
-                </div>
-                <div style={{ fontSize: '12px', lineHeight: '1.4' }}>
-                  {r.sourceName} 調度了 {r.weightKg}kg {r.category} ({r.condition}).
-                  <br/>
-                  <span style={{ color: '#10B981', marginTop: '4px', display: 'block' }}>
-                    ▶ {r.routing.kind === 'shelter' ? r.routing.allocations.map(a => `${a.districtName}`).join(', ') : r.routing.facilityName}
-                  </span>
-                </div>
-                {r.aiReason && (
-                  <div style={{ marginTop: '8px', borderTop: '1px dashed #333', paddingTop: '8px', fontSize: '11px', color: '#aaa' }}>
-                    <strong>🤖 Claude:</strong> {r.aiReason}
-                  </div>
-                )}
-              </div>
-            ))}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '0' }}>
+            <table style={{ width: '100%', fontSize: '11px', textAlign: 'left', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ color: '#888', borderBottom: '1px solid #333', background: '#0F0F0F', position: 'sticky', top: 0 }}>
+                  <th style={{ padding: '8px 12px', fontWeight: 'normal' }}>Time</th>
+                  <th style={{ padding: '8px', fontWeight: 'normal' }}>Source</th>
+                  <th style={{ padding: '8px', fontWeight: 'normal' }}>Food / Weight</th>
+                  <th style={{ padding: '8px', fontWeight: 'normal' }}>Classification</th>
+                  <th style={{ padding: '8px', fontWeight: 'normal' }}>Nutrition / Energy</th>
+                  <th style={{ padding: '8px', fontWeight: 'normal' }}>Routing / Facility</th>
+                </tr>
+              </thead>
+              <tbody>
+                {records.map(r => (
+                  <tr key={r.id} style={{ borderBottom: '1px solid #222' }}>
+                    <td style={{ padding: '8px 12px', color: '#666' }}>{new Date(r.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                    <td style={{ padding: '8px' }}>
+                      <span className={`badge badge-${r.sourceType==='supermarket'?'blue':r.sourceType==='restaurant'?'purple':'orange'}`} style={{background: r.sourceType==='supermarket'?'#1E3A8A':r.sourceType==='restaurant'?'#4C1D95':'#78350F', padding:'2px 4px', marginRight:'4px', border:'none', color:'#fff'}}>
+                        {r.sourceType}{r.isPredicted ? ' (pred)' : ''}
+                      </span>
+                      <br/><span style={{color: '#ccc', fontSize: '10px'}}>{r.sourceName}</span>
+                    </td>
+                    <td style={{ padding: '8px' }}>{r.category}<br/><span style={{color: '#888'}}>{r.weightKg} kg · {r.condition}</span></td>
+                    <td style={{ padding: '8px' }}>
+                      <span className={r.classification === 'edible' ? "badge badge-green" : "badge badge-red"}>{r.classification.toUpperCase()}</span>
+                    </td>
+                    <td style={{ padding: '8px', color: '#aaa', fontSize: '10px' }}>
+                      {r.classification === 'edible' ? `${r.nutrition.totalKcal} kcal -> ~${r.nutrition.meals} meals` : `~${r.routing.energyEstimate} ${r.routing.energyUnit}`}
+                    </td>
+                    <td style={{ padding: '8px', color: '#aaa', fontSize: '10px' }}>
+                      {r.routing.kind === 'shelter' ? 
+                        r.routing.allocations.map(a => `${a.districtName} (${a.distanceKm}km) - ${a.mealsRouted} meals`).join(', ') : 
+                        `${r.routing.facilityName} (${r.routing.distanceKm}km)`
+                      }
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -280,14 +342,21 @@ export default function DashboardPage() {
   );
 }
 
+function KpiBox({ label, value, color }) {
+  return (
+    <div style={{ background: 'rgba(10,10,10,0.85)', border: `1px solid #333`, borderTop: `2px solid ${color}`, padding: '8px 12px', minWidth: '120px', backdropFilter: 'blur(4px)' }}>
+      <div style={{ fontSize: '20px', fontWeight: 'bold', color: color }}>{value}</div>
+      <div style={{ fontSize: '9px', color: '#888', textTransform: 'uppercase', marginTop: '2px' }}>{label}</div>
+    </div>
+  );
+}
+
 function LayerToggle({ active, onClick, icon, label }) {
   return (
     <div className={`layer-row ${active ? 'active' : ''}`} onClick={onClick}>
-      <div style={{ marginRight: '8px' }}>
-        {active ? <CheckSquare size={14} color="#10B981" /> : <Square size={14} color="#555" />}
-      </div>
+      <div style={{ marginRight: '8px' }}>{active ? <CheckSquare size={14} color="#10B981" /> : <Square size={14} color="#555" />}</div>
       <div style={{ marginRight: '8px' }}>{icon}</div>
-      <div style={{ flex: 1 }}>{label}</div>
+      <div style={{ flex: 1, fontSize: '11px' }}>{label}</div>
       <Info size={12} color="#555" />
     </div>
   );
