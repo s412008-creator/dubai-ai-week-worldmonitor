@@ -98,7 +98,6 @@ export default function DashboardPage() {
   };
 
   const handlePmsConnect = async (pmsType) => {
-    // Simulated PMS fetch
     const pmsData = {
       waterfront: { name: 'Hotel Amstel Waterfront', nbhd: 'centrum', rooms: 220, occ: 82, brk: true, rest: true, banq: true, guests: 60 },
       business: { name: 'Hotel Zuidplein Business', nbhd: 'zuid', rooms: 150, occ: 68, brk: true, rest: false, banq: false, guests: 0 },
@@ -174,6 +173,10 @@ export default function DashboardPage() {
           <button style={{ background: 'rgba(16,185,129,0.1)', color: '#10B981', border: '1px solid #10B981', padding: '2px 8px', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '1rem' }}>
             <Target size={12}/> AMSTERDAM TRIAGE
           </button>
+          
+          <button className="animate-pulse-red" style={{ background: '#EF4444', color: '#fff', border: 'none', padding: '2px 8px', fontSize: '10px', fontWeight: 'bold' }}>
+            CRISIS LEVEL 5
+          </button>
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '10px', color: 'var(--text-muted)' }}>
@@ -190,30 +193,31 @@ export default function DashboardPage() {
             movements={deckData.movements}
             layersActive={layers}
           />
+          <div className="scanline-overlay"></div>
         </div>
 
         {/* Floating KPI Stats (Top Right) */}
         <div style={{ position: 'absolute', top: '1rem', right: '1rem', display: 'flex', gap: '0.5rem', zIndex: 20 }}>
-          <KpiBox label="Records Processed" value={kpiStats.records} color="#10B981" />
-          <KpiBox label="Kg Surplus Tracked" value={kpiStats.weightKg.toFixed(1)} color="#3B82F6" />
-          <KpiBox label="Meals Redistributable" value={kpiStats.meals.toFixed(1)} color="#10B981" />
-          <KpiBox label="kWh Energy (est.)" value={kpiStats.energy.toFixed(0)} color="#F59E0B" />
+          <KpiBox label="RECORDS PROCESSED" value={kpiStats.records} color="#10B981" />
+          <KpiBox label="KG SURPLUS TRACKED" value={kpiStats.weightKg.toFixed(1)} color="#3B82F6" />
+          <KpiBox label="MEALS REDISTRIBUTABLE" value={kpiStats.meals.toFixed(1)} color="#10B981" />
+          <KpiBox label="KWH ENERGY (EST.)" value={kpiStats.energy.toFixed(0)} color="#F59E0B" />
         </div>
 
-        {/* Left Layer Panel */}
-        <div className="panel" style={{ position: 'absolute', top: '1rem', left: '1rem', width: '260px', bottom: '1rem', zIndex: 20, display: 'flex', flexDirection: 'column' }}>
-          <div className="panel-header"><span>圖層 (LAYERS)</span><span>▼</span></div>
+        {/* Left Layer Panel - Fixed bottom position to avoid overlapping the bottom grid */}
+        <div className="panel" style={{ position: 'absolute', top: '1rem', left: '1rem', width: '260px', bottom: '270px', zIndex: 20, display: 'flex', flexDirection: 'column' }}>
+          <div className="panel-header"><span>LAYERS</span><span>▼</span></div>
           <div style={{ flex: 1, overflowY: 'auto' }}>
-            <LayerToggle active={layers.hotspots} onClick={() => toggleLayer('hotspots')} icon={<AlertTriangle size={14} color="#EF4444"/>} label="高需求熱點 (High Need)" />
-            <LayerToggle active={layers.cctv} onClick={() => toggleLayer('cctv')} icon={<Video size={14} color="#3B82F6"/>} label="路口監視網路 (CCTVs)" />
-            <LayerToggle active={layers.stations} onClick={() => toggleLayer('stations')} icon={<Globe2 size={14} color="#10B981"/>} label="食物站/超市 (Sources)" />
-            <LayerToggle active={layers.destinations} onClick={() => toggleLayer('destinations')} icon={<Target size={14} color="#10B981"/>} label="庇護所 (Destinations)" />
-            <LayerToggle active={layers.routes} onClick={() => toggleLayer('routes')} icon={<Activity size={14} color="#F59E0B"/>} label="實際調度路線 (Routes)" />
+            <LayerToggle active={layers.hotspots} onClick={() => toggleLayer('hotspots')} icon={<AlertTriangle size={14} color="#EF4444"/>} label="High Need Hotspots" />
+            <LayerToggle active={layers.cctv} onClick={() => toggleLayer('cctv')} icon={<Video size={14} color="#3B82F6"/>} label="CCTV Network" />
+            <LayerToggle active={layers.stations} onClick={() => toggleLayer('stations')} icon={<Globe2 size={14} color="#10B981"/>} label="Food Sources" />
+            <LayerToggle active={layers.destinations} onClick={() => toggleLayer('destinations')} icon={<Target size={14} color="#10B981"/>} label="Shelters" />
+            <LayerToggle active={layers.routes} onClick={() => toggleLayer('routes')} icon={<Activity size={14} color="#F59E0B"/>} label="Active Routes" />
           </div>
           <div style={{ padding: '12px', borderTop: '1px solid #333' }}>
             <button className="btn-primary" style={{ width: '100%', padding: '8px' }} onClick={() => setShowIntake(!showIntake)}>
               <PlusCircle size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} /> 
-              新增調度 (INTAKE FORM)
+              + NEW INTAKE
             </button>
           </div>
         </div>
@@ -222,13 +226,13 @@ export default function DashboardPage() {
         {showIntake && (
           <div className="panel" style={{ position: 'absolute', top: '1rem', left: '290px', width: '320px', zIndex: 30 }}>
             <div className="panel-header" style={{ background: '#10B981', color: '#000' }}>
-              <span>新增調度任務</span>
+              <span>NEW INTAKE TASK</span>
               <button onClick={() => setShowIntake(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>X</button>
             </div>
             
             {/* Hotel PMS Mock Area */}
             <div style={{ padding: '12px', borderBottom: '1px dashed #333' }}>
-              <div style={{ fontSize: '10px', color: '#888', marginBottom: '8px' }}>HOTEL PMS 模擬預測 (預先填入即期餐點)</div>
+              <div style={{ fontSize: '10px', color: '#888', marginBottom: '8px' }}>HOTEL PMS PREDICTION (Auto-fill)</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
                 <button className="btn" style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handlePmsConnect('waterfront')}><Plug size={10}/> Waterfront</button>
                 <button className="btn" style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handlePmsConnect('business')}><Plug size={10}/> Business</button>
@@ -237,27 +241,27 @@ export default function DashboardPage() {
             </div>
 
             <form onSubmit={handleIntakeSubmit} style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11px' }}>
-              <div style={{ fontSize: '10px', color: '#888' }}>手動建檔 (超市/餐廳)</div>
+              <div style={{ fontSize: '10px', color: '#888' }}>MANUAL ENTRY (Supermarket/Restaurant)</div>
               <select value={formData.sourceType} onChange={e => setFormData({...formData, sourceType: e.target.value})} style={{ width: '100%', background: '#111', color: '#fff', border: '1px solid #333', padding: '6px' }}>
-                <option value="supermarket">超市 (Supermarket)</option>
-                <option value="restaurant">餐廳 (Restaurant)</option>
+                <option value="supermarket">Supermarket</option>
+                <option value="restaurant">Restaurant</option>
               </select>
-              <input type="text" placeholder="來源名稱" value={formData.sourceName} onChange={e => setFormData({...formData, sourceName: e.target.value})} style={{ width: '100%', background: '#111', color: '#fff', border: '1px solid #333', padding: '6px' }} />
+              <input type="text" placeholder="Source Name" value={formData.sourceName} onChange={e => setFormData({...formData, sourceName: e.target.value})} style={{ width: '100%', background: '#111', color: '#fff', border: '1px solid #333', padding: '6px' }} />
               <select value={formData.neighborhood} onChange={e => setFormData({...formData, neighborhood: e.target.value})} style={{ width: '100%', background: '#111', color: '#fff', border: '1px solid #333', padding: '6px' }}>
                 {getNeighborhoods().map(n => <option key={n.id} value={n.id}>{n.name}</option>)}
               </select>
               <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} style={{ width: '100%', background: '#111', color: '#fff', border: '1px solid #333', padding: '6px' }}>
-                <option value="bakery">麵包 (Bakery)</option>
-                <option value="produce">生鮮 (Produce)</option>
-                <option value="meat">肉類 (Meat)</option>
+                <option value="bakery">Bakery</option>
+                <option value="produce">Produce</option>
+                <option value="meat">Meat</option>
               </select>
-              <input type="number" placeholder="重量 (kg)" value={formData.weightKg} onChange={e => setFormData({...formData, weightKg: e.target.value})} style={{ width: '100%', background: '#111', color: '#fff', border: '1px solid #333', padding: '6px' }} />
+              <input type="number" placeholder="Weight (kg)" value={formData.weightKg} onChange={e => setFormData({...formData, weightKg: e.target.value})} style={{ width: '100%', background: '#111', color: '#fff', border: '1px solid #333', padding: '6px' }} />
               <select value={formData.condition} onChange={e => setFormData({...formData, condition: e.target.value})} style={{ width: '100%', background: '#111', color: '#fff', border: '1px solid #333', padding: '6px' }}>
-                <option value="fresh">新鮮 (Fresh)</option>
-                <option value="near_expiry">即期 (Near Expiry)</option>
-                <option value="spoiled">壞掉 (Spoiled)</option>
+                <option value="fresh">Fresh</option>
+                <option value="near_expiry">Near Expiry</option>
+                <option value="spoiled">Spoiled</option>
               </select>
-              <button type="submit" className="btn-primary" style={{ marginTop: '8px', padding: '8px' }}>執行手動分類與指派</button>
+              <button type="submit" className="btn-primary" style={{ marginTop: '8px', padding: '8px' }}>CLASSIFY & ROUTE</button>
             </form>
           </div>
         )}
@@ -270,7 +274,7 @@ export default function DashboardPage() {
         {/* Forecast Chart Panel */}
         <div className="panel">
           <div className="panel-header">
-            <span style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: '4px' }}><TrendingUp size={12}/> AI 剩食總量預測 (Forecast Panel)</span>
+            <span style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: '4px' }}><TrendingUp size={12}/> AI SURPLUS FORECAST</span>
             <span style={{ fontSize: '9px', display: 'flex', alignItems: 'center', gap: '4px' }}><CloudRain size={10}/> Tomorrow: 20°C / +10% factor</span>
           </div>
           <div style={{ flex: 1, padding: '12px', fontSize: '10px' }}>
@@ -292,7 +296,7 @@ export default function DashboardPage() {
         {/* Detailed Records Table Panel */}
         <div className="panel">
           <div className="panel-header">
-            <span style={{ color: '#fff' }}>詳細處理紀錄 (Processed Records)</span>
+            <span style={{ color: '#fff' }}>PROCESSED RECORDS</span>
             <button onClick={clearRecords} style={{ background: 'transparent', border: 'none', color: 'var(--accent-red)', cursor: 'pointer' }}><Trash2 size={12}/></button>
           </div>
           <div style={{ flex: 1, overflowY: 'auto', padding: '0' }}>
