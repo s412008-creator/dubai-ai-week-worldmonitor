@@ -1,0 +1,11 @@
+{
+  "_note": "Configurable, clearly-labeled assumptions for hotel occupancy -> food-waste prediction. Inspired by general hospitality food-waste research (e.g. Hotel Kitchen / Champions 12.3 studies on per-guest-night waste), NOT a precise measured figure. Override these per-partner once real data is available.",
+  "avgGuestsPerRoom": 1.7,
+  "wasteKgPerGuestNight": {
+    "breakfast_buffet": 0.15,
+    "restaurant_ala_carte": 0.05
+  },
+  "wasteKgPerBanquetGuest": 0.4,
+  "predictedEdibleRatio": 0.7,
+  "predictedInedibleRatio": 0.3
+}

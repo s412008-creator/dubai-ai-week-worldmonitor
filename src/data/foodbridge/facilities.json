@@ -1,0 +1,27 @@
+{
+  "_note": "Facility names and street addresses are real, verified via web search (see README Sources). Lat/lon are approximate placements within the correct port district (Westpoort), not precise geocodes -- verify with a geocoding API before production use.",
+  "facilities": [
+    {
+      "id": "f1",
+      "name": "AEB Amsterdam (Waste-to-Energy)",
+      "type": "incineration_waste_to_energy",
+      "address": "Australiëhavenweg 21, 1045 BA Amsterdam",
+      "lat": 52.4090,
+      "lon": 4.8168,
+      "accepts": ["mixed", "cooked", "non-recoverable", "meat", "dairy"],
+      "energyModel": "incineration",
+      "source": "https://www.aebamsterdam.com/waste-to-energy/"
+    },
+    {
+      "id": "f2",
+      "name": "Orgaworld Greenmills (Anaerobic Digestion)",
+      "type": "anaerobic_digestion",
+      "address": "Corsicaweg 2, 1044 AB Amsterdam",
+      "lat": 52.4051,
+      "lon": 4.8259,
+      "accepts": ["produce", "bakery", "unpackaged_supermarket_organic"],
+      "energyModel": "anaerobic_digestion",
+      "source": "https://www.orgaworld.com/more-about-our-business/our-locations/amsterdam-greenmills"
+    }
+  ]
+}

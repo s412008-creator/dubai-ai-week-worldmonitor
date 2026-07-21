@@ -1,109 +1,96 @@
-"use client";
-
 import { useState, useEffect } from 'react';
+import { classify, computeNutritionStatic, routeEdible, routeInedible, predictHotelWaste, uid, getNeighborhoods, getFacilities, getDistricts } from '../utils/triageEngine';
 
-const initialMockData = {
-  "homeless": [
-    { "id": "h1", "name": "John D.", "lat": 52.3731, "lng": 4.8922, "status": "Idle", "lastUpdate": "10 mins ago" },
-    { "id": "h2", "name": "Anonymous 12", "lat": 52.3600, "lng": 4.8850, "status": "Moving", "lastUpdate": "2 mins ago" },
-    { "id": "h3", "name": "Sarah M.", "lat": 52.3650, "lng": 4.9100, "status": "Recently Claimed Food", "lastUpdate": "Just now" }
-  ],
-  "foodStations": [
-    { "id": "s1", "name": "Albert Heijn (Dam Square)", "lat": 52.3734, "lng": 4.8914, "surplus": "15kg", "type": "Supermarket" },
-    { "id": "s2", "name": "Waldorf Astoria (Leftovers)", "lat": 52.3644, "lng": 4.8966, "surplus": "30kg", "type": "Hotel" },
-    { "id": "s3", "name": "Jumbo (Museumplein)", "lat": 52.3565, "lng": 4.8771, "surplus": "20kg", "type": "Supermarket" }
-  ],
-  "movements": [
-    { "id": "m1", "startLat": 52.3731, "startLng": 4.8922, "endLat": 52.3734, "endLng": 4.8914, "color": "#10B981" },
-    { "id": "m2", "startLat": 52.3600, "startLng": 4.8850, "endLat": 52.3644, "endLng": 4.8966, "color": "#3B82F6" }
-  ]
-};
+// Seed demo data to match FoodBridge
+const seedRecords = async () => {
+  const records = [];
+  
+  const addSR = (fd) => {
+    const record = {
+      id: uid(), sourceType: fd.sourceType, sourceName: fd.sourceName, neighborhood: fd.neighborhood,
+      category: fd.category, weightKg: Number(fd.weightKg), condition: fd.condition,
+      timestamp: new Date().toISOString(), isPredicted: false
+    };
+    const cls = classify(record.condition);
+    record.classification = cls.classification;
+    record.classificationReason = cls.reason;
 
-const extraHomeless = Array.from({ length: 80 }).map((_, i) => ({
-  id: `h-extra-${i}`,
-  name: `Target Node ${i+20}`,
-  lat: 52.3676 + (Math.random() - 0.5) * 0.03, // cluster around centrum
-  lng: 4.9041 + (Math.random() - 0.5) * 0.03,
-  status: 'Idle',
-  lastUpdate: 'Just now'
-}));
+    if (record.classification === 'edible') {
+      record.nutrition = computeNutritionStatic(record.weightKg, record.category);
+      record.routing = { kind: 'shelter', allocations: routeEdible(record.neighborhood, record.nutrition.meals) };
+    } else {
+      record.routing = { kind: 'facility', ...routeInedible(record.neighborhood, record.category, record.weightKg) };
+    }
+    records.unshift(record);
+  };
 
-initialMockData.homeless = [...initialMockData.homeless, ...extraHomeless];
+  const addH = (fd) => {
+    const pred = predictHotelWaste(
+      Number(fd.totalRooms), Number(fd.occupancyPct),
+      fd.breakfast, fd.restaurant, fd.banquet, Number(fd.banquetGuests || 0)
+    );
+    const baseTs = new Date().toISOString();
+    
+    if (pred.edibleKg > 0.05) {
+      const r = {
+        id: uid(), sourceType: 'hotel', sourceName: fd.sourceName, neighborhood: fd.neighborhood,
+        category: 'mixed_hotel_surplus', weightKg: pred.edibleKg, condition: 'predicted',
+        timestamp: baseTs, isPredicted: true, classification: 'edible',
+        classificationReason: `Rule-based: predicted edible portion from occupancy model.`
+      };
+      r.nutrition = computeNutritionStatic(r.weightKg, r.category);
+      r.routing = { kind: 'shelter', allocations: routeEdible(r.neighborhood, r.nutrition.meals) };
+      records.unshift(r);
+    }
+    if (pred.inedibleKg > 0.05) {
+      const r = {
+        id: uid(), sourceType: 'hotel', sourceName: fd.sourceName, neighborhood: fd.neighborhood,
+        category: 'mixed_hotel_surplus', weightKg: pred.inedibleKg, condition: 'predicted',
+        timestamp: baseTs, isPredicted: true, classification: 'inedible',
+        classificationReason: `Rule-based: predicted inedible/prep-scrap portion from occupancy model.`
+      };
+      r.routing = { kind: 'facility', ...routeInedible(r.neighborhood, r.category, r.weightKg) };
+      records.unshift(r);
+    }
+  };
 
-export const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const p = 0.017453292519943295;
-  const c = Math.cos;
-  const a = 0.5 - c((lat2 - lat1) * p)/2 + 
-          c(lat1 * p) * c(lat2 * p) * 
-          (1 - c((lon2 - lon1) * p))/2;
-  return 12742 * Math.asin(Math.sqrt(a)); // 2 * R; R = 6371 km
+  addSR({ sourceType: 'supermarket', sourceName: 'Albert Heijn — Centrum', neighborhood: 'centrum', category: 'bakery', weightKg: 18, condition: 'near_expiry' });
+  addSR({ sourceType: 'restaurant', sourceName: 'Restaurant Zuidas Bites', neighborhood: 'zuid', category: 'meat', weightKg: 11, condition: 'spoiled' });
+  addH({ sourceName: 'Hotel Amstel Waterfront', neighborhood: 'centrum', totalRooms: 220, occupancyPct: 82, breakfast: true, restaurant: true, banquet: true, banquetGuests: 60 });
+  
+  return records;
 };
 
 export function useAppStore() {
-  const [data, setData] = useState({ homeless: [], foodStations: [], movements: [] });
+  const [records, setRecords] = useState([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem('amsterdamData');
+    const stored = localStorage.getItem('foodbridgeRecords');
     if (stored) {
-      setData(JSON.parse(stored));
+      setRecords(JSON.parse(stored));
     } else {
-      const initData = { ...initialMockData, movements: [] };
-      setData(initData);
-      localStorage.setItem('amsterdamData', JSON.stringify(initData));
+      seedRecords().then(seed => {
+        setRecords(seed);
+        localStorage.setItem('foodbridgeRecords', JSON.stringify(seed));
+      });
     }
     setIsLoaded(true);
-
-    const handleStorage = (e) => {
-      if (e.key === 'amsterdamData' && e.newValue) {
-        setData(JSON.parse(e.newValue));
-      }
-    };
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
-  const claimFood = (homelessId, stationId) => {
-    const station = data.foodStations.find(s => s.id === stationId);
-    if (!station) return;
-
-    let newMovement = null;
-
-    const updatedHomeless = data.homeless.map(h => {
-      if (h.id === homelessId) {
-        newMovement = {
-          startLat: h.lat,
-          startLng: h.lng,
-          endLat: station.lat,
-          endLng: station.lng,
-          color: '#34D399', // primary color for movement
-          name: h.name
-        };
-        return {
-          ...h,
-          lat: station.lat,
-          lng: station.lng,
-          status: 'Recently Claimed Food',
-          lastUpdate: 'Just now'
-        };
-      }
-      return h;
-    });
-
-    const newData = { 
-      ...data, 
-      homeless: updatedHomeless,
-      movements: newMovement ? [...(data.movements || []), newMovement] : (data.movements || [])
-    };
-    setData(newData);
-    localStorage.setItem('oasisData', JSON.stringify(newData));
+  const saveRecords = (newRecords) => {
+    setRecords(newRecords);
+    localStorage.setItem('foodbridgeRecords', JSON.stringify(newRecords));
   };
 
-  const resetData = () => {
-    const initData = { ...initialMockData, movements: [] };
-    setData(initData);
-    localStorage.setItem('oasisData', JSON.stringify(initData));
+  const addRecord = (record) => {
+    const newRecords = [record, ...records];
+    saveRecords(newRecords);
   };
 
-  return { data, isLoaded, claimFood, resetData };
+  const clearRecords = () => {
+    saveRecords([]);
+  };
+
+  return { records, isLoaded, addRecord, clearRecords };
 }

@@ -1,0 +1,24 @@
+{
+  "_note": "PRIVACY-BY-DESIGN: aggregated to district (stadsdeel) level only -- no specific shelter names, buildings, or addresses. Routing recommendations point to a district-level meal-need pool; last-mile delivery to a specific shelter/kitchen is left to local partner logistics, which is also the safer real-world design (this app should never itself expose which building vulnerable people are in).",
+  "sources": {
+    "homelessTotal": "2,695 people in shelter/temporary accommodation in Amsterdam, 2023 (CBS, Monitor Dakloosheid regional breakdown)",
+    "homelessSourceUrl": "https://www.cbs.nl/nl-nl/longread/aanvullende-statistische-diensten/2024/geregistreerde-dakloze-personen-in-noodopvang-en-tijdelijke-opvang-per-regio/5-resultaten",
+    "populationTotal": "931,748 residents, Amsterdam, 2023",
+    "populationSourceUrl": "https://onderzoek.amsterdam.nl/artikel/amsterdam-groeit-vestiging-en-vertrek-in-2023",
+    "districtShareCaveat": "CBS publishes the 2,695 figure city-wide, not broken down per stadsdeel. The per-district counts below distribute that verified total using illustrative district population-share estimates (approximate, not an official per-district census breakdown). Replace with a real per-district figure from Gemeente Amsterdam / shelter-operator partners if this becomes a production system."
+  },
+  "assumptions": {
+    "mealsNeededPerPersonPerDay": 2,
+    "assumedExistingCoveragePct": 50,
+    "assumedExistingCoveragePctNote": "Planning assumption representing meal need already met by existing food aid/shelters before FoodBridge routing -- calibrate per district once partner intake data is available."
+  },
+  "districts": [
+    { "id": "centrum",    "estimatedPeopleInNeed": 267, "currentCoveragePct": 55 },
+    { "id": "noord",      "estimatedPeopleInNeed": 307, "currentCoveragePct": 65 },
+    { "id": "west",       "estimatedPeopleInNeed": 446, "currentCoveragePct": 45 },
+    { "id": "nieuw-west", "estimatedPeopleInNeed": 492, "currentCoveragePct": 50 },
+    { "id": "zuid",       "estimatedPeopleInNeed": 461, "currentCoveragePct": 48 },
+    { "id": "oost",       "estimatedPeopleInNeed": 430, "currentCoveragePct": 60 },
+    { "id": "zuidoost",   "estimatedPeopleInNeed": 292, "currentCoveragePct": 35 }
+  ]
+}

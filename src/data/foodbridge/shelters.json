@@ -1,0 +1,5 @@
+{
+  "_deprecated": true,
+  "_reason": "Superseded by data/district_need.json. Pinpointing individual shelter buildings/addresses is a privacy risk for vulnerable populations, so the app now routes to an aggregated district-level meal-need pool instead of named shelters. Kept in the repo only so the earlier design decision is visible in history -- app.js no longer reads this file.",
+  "shelters": []
+}

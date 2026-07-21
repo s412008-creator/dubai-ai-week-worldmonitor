@@ -1,0 +1,14 @@
+{
+  "_note": "Static per-100g nutrition averages for demo reliability (no live-API dependency during a presentation). Production should call Open Food Facts / USDA FoodData Central per-item. Values are typical-category averages, not per-SKU accurate.",
+  "kcalPerMealAssumption": 700,
+  "categories": {
+    "bakery":         { "kcalPer100g": 265, "proteinG": 9,  "carbsG": 49, "fatG": 3.2 },
+    "produce":        { "kcalPer100g": 60,  "proteinG": 1.5,"carbsG": 13, "fatG": 0.3 },
+    "dairy":          { "kcalPer100g": 150, "proteinG": 8,  "carbsG": 6,  "fatG": 10 },
+    "meat":           { "kcalPer100g": 215, "proteinG": 25, "carbsG": 0,  "fatG": 13 },
+    "prepared_meals": { "kcalPer100g": 180, "proteinG": 7,  "carbsG": 20, "fatG": 7 },
+    "beverages":       { "kcalPer100g": 42,  "proteinG": 0.2,"carbsG": 10, "fatG": 0 },
+    "mixed_hotel_surplus": { "kcalPer100g": 170, "proteinG": 6, "carbsG": 22, "fatG": 6 },
+    "other":          { "kcalPer100g": 120, "proteinG": 4,  "carbsG": 18, "fatG": 3 }
+  }
+}

@@ -1,48 +1,80 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Shield, Crosshair, AlertTriangle, Battery, Navigation, Globe2, Radio, Target, Activity, Menu, Settings, Maximize, Search, Eye, Circle, PlaySquare } from 'lucide-react';
+import { Shield, Crosshair, AlertTriangle, Battery, Navigation, Globe2, Target, Menu, Settings, Maximize, Search, PlusCircle, Trash2, Cpu } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useAppStore } from '../hooks/useAppStore';
+import { classify, computeNutritionStatic, routeEdible, routeInedible, predictHotelWaste, uid, getNeighborhoods } from '../utils/triageEngine';
 
-// Dynamically import DeckGL Map to avoid SSR issues
 const DeckGLTracker = dynamic(() => import('../components/DeckGLTracker'), { ssr: false });
 
 export default function DashboardPage() {
-  const { data, isLoaded } = useAppStore();
-  const [aiInsight, setAiInsight] = useState("Analyzing movement patterns...");
+  const { records, isLoaded, addRecord, clearRecords } = useAppStore();
+  const [layers, setLayers] = useState({ routes: true, heatmap: false, stations: true });
+  const [formData, setFormData] = useState({ sourceType: 'supermarket', sourceName: '', neighborhood: 'centrum', category: 'bakery', weightKg: 10, condition: 'fresh' });
+  const [apiKey, setApiKey] = useState('');
   
-  // Rich panel toggles simulating worldmonitor.app
-  const [layers, setLayers] = useState({
-    stations: true,
-    homeless: true,
-    movements: true,
-    conflictZones: true,
-    militaryBases: true,
-    cctvNodes: false,
-    submarineCables: false,
-  });
-
   const toggleLayer = (key) => setLayers(prev => ({ ...prev, [key]: !prev[key] }));
 
-  useEffect(() => {
-    if (!isLoaded) return;
-    
-    const movingCount = data.homeless.filter(h => h.status !== 'Idle').length;
-    const claimedCount = data.homeless.filter(h => h.status === 'Recently Claimed Food').length;
-    
-    setTimeout(() => {
-      if (claimedCount > 0) {
-        setAiInsight(`Global food prices dip below $87. Blockade on Centrum by supply chain bottlenecks keeps losses in check. Recommend dispatch to Albert Heijn.`);
-      } else if (movingCount > 0) {
-        setAiInsight(`Movement detected in Zuid district. Expected demand surge at Museumplein station in 30 mins. Re-routing surplus required.`);
-      } else {
-        setAiInsight("Population is currently stable. Surplus food levels are adequate across all monitored grid sections.");
-      }
-    }, 1000);
-  }, [data, isLoaded]);
+  // Convert records to DeckGL data format
+  const deckData = { movements: [], homeless: [], stations: [] };
+  if (isLoaded) {
+    records.forEach(r => {
+      const nbhd = getNeighborhoods().find(n => n.id === r.neighborhood);
+      if (!nbhd) return;
+      const startLat = nbhd.lat + (Math.random() - 0.5) * 0.005;
+      const startLng = nbhd.lon + (Math.random() - 0.5) * 0.005;
+      
+      // Source node
+      deckData.stations.push({ lat: startLat, lng: startLng, name: r.sourceName });
 
-  if (!isLoaded) return <div style={{ padding: '2rem', color: '#fff', background: '#000', height: '100vh' }}>INITIALIZING MONITOR KERNEL...</div>;
+      if (r.routing.kind === 'shelter') {
+        r.routing.allocations.forEach(a => {
+          deckData.movements.push({ startLat, startLng, endLat: a.lat, endLng: a.lon, color: [42, 138, 82, 200] });
+          deckData.homeless.push({ lat: a.lat, lng: a.lon, name: a.districtName, status: 'Idle' });
+        });
+      } else {
+        deckData.movements.push({ startLat, startLng, endLat: r.routing.lat, endLng: r.routing.lon, color: [201, 75, 63, 200] });
+      }
+    });
+  }
+
+  const handleIntakeSubmit = async (e) => {
+    e.preventDefault();
+    const r = {
+      id: uid(), sourceType: formData.sourceType, sourceName: formData.sourceName || 'Unknown Source', neighborhood: formData.neighborhood,
+      category: formData.category, weightKg: Number(formData.weightKg), condition: formData.condition,
+      timestamp: new Date().toISOString(), isPredicted: false
+    };
+    const cls = classify(r.condition);
+    r.classification = cls.classification;
+    r.classificationReason = cls.reason;
+
+    if (r.classification === 'edible') {
+      r.nutrition = computeNutritionStatic(r.weightKg, r.category);
+      r.routing = { kind: 'shelter', allocations: routeEdible(r.neighborhood, r.nutrition.meals) };
+    } else {
+      r.routing = { kind: 'facility', ...routeInedible(r.neighborhood, r.category, r.weightKg) };
+    }
+
+    addRecord(r);
+
+    if (apiKey) {
+      try {
+        const res = await fetch('/api/ai-reasoning', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ record: r, apiKey })
+        });
+        const data = await res.json();
+        if (data.rationale) alert("Claude AI Reason: " + data.rationale);
+      } catch(e) {
+        console.error("AI Error:", e);
+      }
+    }
+  };
+
+  if (!isLoaded) return <div style={{ padding: '2rem', color: '#fff', background: '#000', height: '100vh' }}>INITIALIZING ENGINE...</div>;
 
   return (
     <div className="app-container">
@@ -51,221 +83,131 @@ export default function DashboardPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Globe2 size={18} color="#10B981" />
-            <div style={{ fontWeight: 'bold', letterSpacing: '3px', fontSize: '1.1rem' }}>
-              MONITOR
-            </div>
+            <div style={{ fontWeight: 'bold', letterSpacing: '3px', fontSize: '1.1rem' }}>CARE MONITOR</div>
           </div>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>v2.10.0</span>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>@zhuangzijin</span>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>v3.0.0</span>
         </div>
-        
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          <div style={{ border: '1px solid var(--border)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', background: '#111' }}>全球 ▼</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid var(--primary)', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16,185,129,0.1)' }}>
-            <Target size={12} color="var(--primary)" /> <span style={{ fontSize: '0.75rem', color: 'var(--primary)' }}>MISSION</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid var(--accent-orange)', padding: '2px 8px', borderRadius: '4px', background: 'rgba(245,158,11,0.1)' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--accent-orange)' }}>DEFCON 5</span>
-          </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-            MON, 20 JUL 2026 {new Date().toISOString().substring(11, 19)} UTC
-          </div>
-          <button style={{ background: 'var(--primary)', color: '#000', border: 'none', padding: '4px 12px', borderRadius: '4px', fontWeight: 'bold', fontSize: '0.8rem' }}>登錄</button>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>AMSTERDAM</div>
+          <input type="password" placeholder="Claude API Key (Optional)" value={apiKey} onChange={e => setApiKey(e.target.value)} style={{ background: '#111', border: '1px solid #333', color: '#fff', padding: '4px 8px', fontSize: '0.7rem', borderRadius: '4px' }} />
         </div>
       </header>
 
-      {/* Main Content Area (Map + Controls) */}
       <div className="main-content">
         {/* Map Area */}
         <div className="map-area">
           <DeckGLTracker 
-            homeless={data.homeless}
-            stations={data.foodStations}
-            movements={data.movements || []}
-            showHeatmap={layers.homeless}
+            homeless={deckData.homeless}
+            stations={deckData.stations}
+            movements={deckData.movements}
+            showHeatmap={layers.heatmap}
             showStations={layers.stations}
-            showMovements={layers.movements}
+            showMovements={layers.routes}
           />
         </div>
 
-        {/* Left Floating Panel (Rich Layers) */}
-        <div className="floating-controls" style={{ width: '280px', top: '1rem', left: '1rem', background: 'rgba(10,10,10,0.95)' }}>
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-            <div style={{ background: 'var(--primary)', color: '#000', padding: '4px 8px', fontSize: '0.75rem', fontWeight: 'bold', borderRadius: '4px' }}>7d</div>
-            <div style={{ border: '1px solid var(--border)', color: 'var(--text-muted)', padding: '4px 8px', fontSize: '0.75rem', borderRadius: '4px' }}>全部</div>
+        {/* Left Floating Panel: Intake Form */}
+        <div className="floating-controls" style={{ width: '320px', top: '1rem', left: '1rem', background: 'rgba(10,10,10,0.95)', border: '1px solid #333' }}>
+          <div style={{ borderBottom: '1px solid #333', paddingBottom: '0.5rem', marginBottom: '1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <PlusCircle size={16} color="var(--primary)" /> 新增調度紀錄 (Intake)
           </div>
-          
-          <div style={{ border: '1px solid var(--border)', borderRadius: '4px', padding: '0.5rem', display: 'flex', alignItems: 'center', marginBottom: '1rem', background: '#000' }}>
-            <Search size={14} color="var(--text-muted)" style={{ marginRight: '0.5rem' }} />
-            <input type="text" placeholder="搜索圖層..." style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '0.8rem', outline: 'none', width: '100%' }} />
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {[
-              { id: 'stations', label: '情報熱點 (Food)', color: '#10B981', icon: <Target size={14} /> },
-              { id: 'conflictZones', label: '衝突區 (Risk)', color: '#10B981', icon: <AlertTriangle size={14} /> },
-              { id: 'militaryBases', label: '軍事基地 (Depot)', color: '#10B981', icon: <Shield size={14} /> },
-              { id: 'homeless', label: '監視器節點 (Targets)', color: '#F59E0B', icon: <Radio size={14} /> },
-              { id: 'movements', label: '移動軌跡 (Vectors)', color: '#3B82F6', icon: <Navigation size={14} /> },
-              { id: 'submarineCables', label: '海底電纜 (Cables)', color: '#4B5563', icon: <Activity size={14} /> }
-            ].map(layer => (
-              <div key={layer.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem' }}>
-                  <input type="checkbox" checked={layers[layer.id]} onChange={() => toggleLayer(layer.id)} style={{ accentColor: 'var(--primary)' }} />
-                  <span style={{ color: layer.color }}>{layer.icon}</span>
-                  <span style={{ color: layers[layer.id] ? '#fff' : 'var(--text-muted)' }}>{layer.label}</span>
-                </label>
-                <div style={{ width: '18px', height: '18px', border: '1px solid var(--border)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>i</span>
-                </div>
+          <form onSubmit={handleIntakeSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div>
+              <label style={{ fontSize: '0.7rem', color: '#888' }}>來源類型</label>
+              <select value={formData.sourceType} onChange={e => setFormData({...formData, sourceType: e.target.value})} style={{ width: '100%', background: '#111', color: '#fff', border: '1px solid #333', padding: '4px' }}>
+                <option value="supermarket">超市 (Supermarket)</option>
+                <option value="restaurant">餐廳 (Restaurant)</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: '0.7rem', color: '#888' }}>來源名稱</label>
+              <input type="text" value={formData.sourceName} onChange={e => setFormData({...formData, sourceName: e.target.value})} style={{ width: '100%', background: '#111', color: '#fff', border: '1px solid #333', padding: '4px' }} />
+            </div>
+            <div>
+              <label style={{ fontSize: '0.7rem', color: '#888' }}>行政區</label>
+              <select value={formData.neighborhood} onChange={e => setFormData({...formData, neighborhood: e.target.value})} style={{ width: '100%', background: '#111', color: '#fff', border: '1px solid #333', padding: '4px' }}>
+                {getNeighborhoods().map(n => <option key={n.id} value={n.id}>{n.name}</option>)}
+              </select>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '0.7rem', color: '#888' }}>食物分類</label>
+                <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} style={{ width: '100%', background: '#111', color: '#fff', border: '1px solid #333', padding: '4px' }}>
+                  <option value="bakery">麵包 (Bakery)</option>
+                  <option value="produce">生鮮 (Produce)</option>
+                  <option value="meat">肉類 (Meat)</option>
+                </select>
               </div>
-            ))}
-          </div>
-          <div style={{ marginTop: '1.5rem', fontSize: '0.7rem', color: '#3B82F6', fontWeight: 'bold' }}>
-            © Zhuang Zijin - Oasis™
-          </div>
-        </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '0.7rem', color: '#888' }}>重量 (kg)</label>
+                <input type="number" value={formData.weightKg} onChange={e => setFormData({...formData, weightKg: e.target.value})} style={{ width: '100%', background: '#111', color: '#fff', border: '1px solid #333', padding: '4px' }} />
+              </div>
+            </div>
+            <div>
+              <label style={{ fontSize: '0.7rem', color: '#888' }}>狀態 (Condition)</label>
+              <select value={formData.condition} onChange={e => setFormData({...formData, condition: e.target.value})} style={{ width: '100%', background: '#111', color: '#fff', border: '1px solid #333', padding: '4px' }}>
+                <option value="fresh">新鮮 (Fresh)</option>
+                <option value="near_expiry">即期 (Near Expiry)</option>
+                <option value="spoiled">壞掉 (Spoiled)</option>
+              </select>
+            </div>
+            <button type="submit" style={{ background: 'var(--primary)', color: '#000', fontWeight: 'bold', padding: '6px', border: 'none', borderRadius: '4px', marginTop: '0.5rem', cursor: 'pointer' }}>新增調度與 AI 分配</button>
+          </form>
 
-        {/* Legend Overlay at Bottom Center of Map */}
-        <div style={{ position: 'absolute', bottom: '1rem', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.8)', border: '1px solid var(--border)', borderRadius: '20px', padding: '6px 16px', display: 'flex', gap: '1rem', fontSize: '0.75rem', zIndex: 20 }}>
-          <span style={{ color: 'var(--text-muted)' }}>圖例</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Circle size={8} fill="#EF4444" color="#EF4444"/> 高度警報</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Circle size={8} fill="#F59E0B" color="#F59E0B"/> 升高</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Circle size={8} fill="#10B981" color="#10B981"/> 監控中</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Circle size={8} fill="#3B82F6" color="#3B82F6"/> 基地</span>
-        </div>
-
-        {/* Map Right Controls */}
-        <div style={{ position: 'absolute', top: '1rem', right: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', zIndex: 20 }}>
-          <div style={{ display: 'flex', background: 'var(--panel-bg)', border: '1px solid var(--border)', borderRadius: '4px', overflow: 'hidden' }}>
-            <button style={{ padding: '4px 8px', background: 'var(--primary)', color: '#000', fontSize: '0.75rem', fontWeight: 'bold', border: 'none' }}>2D</button>
-            <button style={{ padding: '4px 8px', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.75rem', border: 'none' }}>3D</button>
-          </div>
-          <div style={{ background: 'var(--panel-bg)', border: '1px solid var(--border)', borderRadius: '4px', padding: '4px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-            <Maximize size={16} color="var(--text-muted)" />
+          <div style={{ marginTop: '1.5rem', borderTop: '1px solid #333', paddingTop: '1rem' }}>
+             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+                <input type="checkbox" checked={layers.routes} onChange={() => toggleLayer('routes')} style={{ accentColor: 'var(--primary)' }} />
+                <span>顯示決策路徑 (Routing)</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+                <input type="checkbox" checked={layers.heatmap} onChange={() => toggleLayer('heatmap')} style={{ accentColor: 'var(--primary)' }} />
+                <span>顯示需求熱點 (Heatmap)</span>
+              </label>
           </div>
         </div>
       </div>
 
-      {/* Bottom Dashboard Panels (4 Columns) */}
-      <div className="bottom-dashboard" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr' }}>
-        
-        {/* Panel 1: Real-time News */}
-        <div className="dashboard-panel">
-          <div className="panel-header" style={{ justifyContent: 'space-between' }}>
-            <div>實時新聞 <span style={{ color: 'var(--accent-red)' }}>• 93</span></div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <PlaySquare size={14} color="var(--text-muted)" />
-              <Maximize size={14} color="var(--text-muted)" />
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '1rem' }}>
-            {['BLOOMBERG', 'SKYNEWS', 'EURONEWS', 'CNN'].map(n => (
-              <div key={n} style={{ fontSize: '0.65rem', padding: '2px 6px', background: n==='BLOOMBERG' ? 'var(--accent-red)' : '#222', color: n==='BLOOMBERG' ? '#fff' : 'var(--text-muted)', borderRadius: '2px' }}>{n}</div>
-            ))}
-          </div>
-          <div style={{ background: '#111', flexGrow: 1, borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '0.5rem' }}>
-              <Circle size={6} fill="var(--accent-red)" color="var(--accent-red)" /> 準備就緒，隨時可播
-            </div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Bloomberg</div>
-            <button style={{ marginTop: '0.5rem', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid var(--accent-red)', color: 'var(--accent-red)', padding: '4px 12px', borderRadius: '4px', fontSize: '0.75rem' }}>播放直播源</button>
-          </div>
-        </div>
-
-        {/* Panel 2: AI Insights */}
-        <div className="dashboard-panel">
+      {/* Bottom Dashboard Panels */}
+      <div className="bottom-dashboard" style={{ gridTemplateColumns: '1fr' }}>
+        <div className="dashboard-panel" style={{ height: '300px', overflowY: 'auto' }}>
           <div className="panel-header" style={{ justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              AI 洞察 <div style={{ width: '12px', height: '12px', border: '1px solid var(--text-muted)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px' }}>?</div>
+              即時調度歷史紀錄 ({records.length})
             </div>
-            <div style={{ background: 'rgba(16, 185, 129, 0.2)', color: 'var(--primary)', border: '1px solid var(--primary)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.65rem' }}>● 實時</div>
+            <button onClick={clearRecords} style={{ background: 'transparent', border: 'none', color: 'var(--accent-red)', cursor: 'pointer' }}><Trash2 size={14}/></button>
           </div>
-          
-          <div className="ai-insight-card" style={{ flexGrow: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <Globe2 size={14} color="#3B82F6" />
-              <span style={{ fontWeight: 'bold', fontSize: '0.8rem' }}>世界簡報 (Gemini AI)</span>
-            </div>
-            <p style={{ fontSize: '0.85rem', lineHeight: '1.5', color: '#E2E8F0', marginBottom: '0.5rem' }}>
-              {aiInsight}
-            </p>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-              生成於 13m 前 • 最新預測 1h 前
-            </div>
-            <div style={{ marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              ▶ Sources (1) <span style={{ color: 'var(--text-muted)' }}>...</span>
-            </div>
-          </div>
+          <table style={{ width: '100%', fontSize: '0.8rem', textAlign: 'left', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ color: '#888', borderBottom: '1px solid #333' }}>
+                <th style={{ padding: '8px' }}>來源</th>
+                <th>區域</th>
+                <th>分類</th>
+                <th>AI 決策</th>
+                <th>分配目標</th>
+              </tr>
+            </thead>
+            <tbody>
+              {records.map(r => (
+                <tr key={r.id} style={{ borderBottom: '1px solid #222' }}>
+                  <td style={{ padding: '8px' }}>{r.sourceName} <span style={{color:'#666'}}>[{r.sourceType}]</span></td>
+                  <td>{getNeighborhoods().find(n=>n.id===r.neighborhood)?.name}</td>
+                  <td>{r.weightKg}kg {r.category} ({r.condition})</td>
+                  <td>
+                    <span style={{ background: r.classification === 'edible' ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)', color: r.classification === 'edible' ? '#10B981' : '#EF4444', padding: '2px 6px', borderRadius: '4px' }}>
+                      {r.classification.toUpperCase()}
+                    </span>
+                  </td>
+                  <td>
+                    {r.routing.kind === 'shelter' ? 
+                      r.routing.allocations.map(a => `${a.districtName} (${a.mealsRouted} meals)`).join(', ') : 
+                      `${r.routing.facilityName} (${r.routing.energyEstimate} ${r.routing.energyUnit})`
+                    }
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-
-        {/* Panel 3: Strategic Posture */}
-        <div className="dashboard-panel">
-          <div className="panel-header" style={{ justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              AI 戰略態勢 <div style={{ width: '12px', height: '12px', border: '1px solid var(--text-muted)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px' }}>?</div>
-            </div>
-            <div style={{ background: '#333', color: '#fff', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem' }}>1 新</div>
-          </div>
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', padding: '1rem', flexGrow: 1 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-              <div>
-                <div style={{ fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '4px' }}>阿姆斯特丹核心區 (Centrum)</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  調度 <Navigation size={12} color="#3B82F6"/> 7
-                </div>
-              </div>
-              <div style={{ background: 'rgba(245, 158, 11, 0.2)', color: 'var(--accent-orange)', border: '1px solid var(--accent-orange)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem' }}>
-                升高
-              </div>
-            </div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ color: 'var(--primary)' }}>+</span> 穩定
-            </div>
-            <div style={{ borderTop: '1px solid var(--border)', marginTop: '1rem', paddingTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>ZUID 區</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Navigation size={12} color="#3B82F6"/> 3
-              </div>
-              <div style={{ color: 'var(--primary)', fontSize: '0.75rem', border: '1px solid var(--primary)', padding: '2px 6px', borderRadius: '4px' }}>正常</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Panel 4: Instability Ranking */}
-        <div className="dashboard-panel">
-          <div className="panel-header" style={{ justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              站點不穩定性排行 <div style={{ width: '12px', height: '12px', border: '1px solid var(--text-muted)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px' }}>?</div>
-            </div>
-            <div style={{ border: '1px solid var(--accent-orange)', color: 'var(--accent-orange)', padding: '2px 6px', borderRadius: '12px', fontSize: '0.65rem' }}>已緩存</div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {[
-              { name: 'Albert Heijn', score: 73, color: 'var(--accent-orange)' },
-              { name: 'Jumbo', score: 72, color: 'var(--accent-orange)' },
-              { name: 'Waldorf Astoria', score: 40, color: 'var(--primary)' }
-            ].map(station => (
-              <div key={station.name} style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 'bold' }}>
-                    <Target size={14} color="var(--text-muted)" />
-                    <Circle size={8} fill={station.color} color={station.color} />
-                    {station.name}
-                  </div>
-                  <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>{station.score} <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>→</span></div>
-                </div>
-                <div style={{ height: '2px', background: '#333', width: '100%', borderRadius: '1px' }}>
-                  <div style={{ height: '100%', background: station.color, width: `${station.score}%`, borderRadius: '1px' }}></div>
-                </div>
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  U:0 C:0 S:{Math.floor(station.score/2)} I:4
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
       </div>
     </div>
   );

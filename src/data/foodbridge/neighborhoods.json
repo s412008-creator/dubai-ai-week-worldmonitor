@@ -1,0 +1,12 @@
+{
+  "_note": "Approximate centroid coordinates for Amsterdam's stadsdelen (districts), used to place supermarket/restaurant/hotel sources on the map and to compute distances. Illustrative precision, not survey-grade geocoding.",
+  "neighborhoods": [
+    { "id": "centrum", "name": "Centrum", "lat": 52.3702, "lon": 4.8952 },
+    { "id": "noord", "name": "Noord", "lat": 52.3990, "lon": 4.9075 },
+    { "id": "west", "name": "West", "lat": 52.3860, "lon": 4.8580 },
+    { "id": "nieuw-west", "name": "Nieuw-West", "lat": 52.3690, "lon": 4.8110 },
+    { "id": "zuid", "name": "Zuid", "lat": 52.3450, "lon": 4.8730 },
+    { "id": "oost", "name": "Oost", "lat": 52.3600, "lon": 4.9420 },
+    { "id": "zuidoost", "name": "Zuidoost", "lat": 52.3140, "lon": 4.9560 }
+  ]
+}

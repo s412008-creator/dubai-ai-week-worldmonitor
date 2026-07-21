@@ -1,0 +1,8 @@
+{
+  "_note": "MOCK connector payloads shaped like what a real PMS (Mews / Cloudbeds / SiteMinder) 'today's occupancy' endpoint would return, so the 'Connect PMS' button in the demo can simulate a live integration without real partner credentials. Swap `mockFetchPmsOccupancy()` in app.js for a real OAuth-authenticated fetch to the partner's API using this same shape.",
+  "hotels": [
+    { "pmsId": "mews-demo-001", "name": "Hotel Amstel Waterfront", "neighborhood": "centrum", "totalRooms": 220, "roomsSoldToday": 180, "breakfastService": true, "restaurantService": true, "banquetToday": true, "banquetGuests": 60 },
+    { "pmsId": "cloudbeds-demo-002", "name": "Hotel Zuidplein Business", "neighborhood": "zuid", "totalRooms": 150, "roomsSoldToday": 102, "breakfastService": true, "restaurantService": false, "banquetToday": false, "banquetGuests": 0 },
+    { "pmsId": "siteminder-demo-003", "name": "Hotel Oost Canal View", "neighborhood": "oost", "totalRooms": 90, "roomsSoldToday": 68, "breakfastService": true, "restaurantService": true, "banquetToday": false, "banquetGuests": 0 }
+  ]
+}
