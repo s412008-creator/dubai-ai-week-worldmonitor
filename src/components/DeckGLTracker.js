@@ -15,13 +15,27 @@ const AMSTERDAM_CENTER = [4.8952, 52.3702];
 const randomPoint = (radius) => [AMSTERDAM_CENTER[0] + (Math.random() - 0.5) * radius * 2, AMSTERDAM_CENTER[1] + (Math.random() - 0.5) * radius];
 
 // Generate intense mock data for "God Mode"
-const LOCAL_NODES = Array.from({length: 40}).map(() => [AMSTERDAM_CENTER[0] + (Math.random()-0.5)*0.15, AMSTERDAM_CENTER[1] + (Math.random()-0.5)*0.1]);
+const LOCAL_NODES = Array.from({length: 80}).map(() => [
+  AMSTERDAM_CENTER[0] + (Math.random()-0.5)*0.25, 
+  AMSTERDAM_CENTER[1] + (Math.random()-0.5)*0.15
+]);
 
-const MOCK_ARCS = LOCAL_NODES.map(coord => ({
-  start: AMSTERDAM_CENTER,
-  end: coord,
-  type: Math.random() > 0.5 ? 'outbound' : 'inbound'
-}));
+const MOCK_ARCS = Array.from({length: 120}).map(() => {
+  const startIdx = Math.floor(Math.random() * LOCAL_NODES.length);
+  let endIdx = Math.floor(Math.random() * LOCAL_NODES.length);
+  while (endIdx === startIdx) endIdx = Math.floor(Math.random() * LOCAL_NODES.length);
+  
+  const rand = Math.random();
+  let type = 'data';
+  if (rand > 0.8) type = 'critical';
+  else if (rand > 0.5) type = 'logistics';
+
+  return {
+    start: LOCAL_NODES[startIdx],
+    end: LOCAL_NODES[endIdx],
+    type
+  };
+});
 
 const MOCK_TRIPS = Array.from({length: 100}).map(() => {
   const t0 = Math.random() * 1000;
@@ -59,9 +73,10 @@ export default function DeckGLTracker({ homeless, stations, movements, layersAct
         new ArcLayer({
           id: 'mock-global-arcs', data: MOCK_ARCS,
           getSourcePosition: d => d.start, getTargetPosition: d => d.end,
-          getSourceColor: d => d.type === 'outbound' ? [16, 185, 129, 150] : [239, 68, 68, 150],
-          getTargetColor: d => d.type === 'outbound' ? [16, 185, 129, 0] : [239, 68, 68, 0],
-          getWidth: 2
+          getSourceColor: d => d.type === 'critical' ? [239, 68, 68, 180] : d.type === 'logistics' ? [245, 158, 11, 150] : [59, 130, 246, 120],
+          getTargetColor: d => d.type === 'critical' ? [239, 68, 68, 20] : d.type === 'logistics' ? [245, 158, 11, 20] : [59, 130, 246, 10],
+          getWidth: d => d.type === 'critical' ? 3 : 1,
+          getHeight: 0.3
         })
       );
     }
