@@ -92,5 +92,10 @@ export function useAppStore() {
     saveRecords([]);
   };
 
-  return { records, isLoaded, addRecord, clearRecords };
+  const loadDemoData = async () => {
+    const seed = await seedRecords();
+    saveRecords(seed);
+  };
+
+  return { records, isLoaded, addRecord, clearRecords, loadDemoData };
 }
