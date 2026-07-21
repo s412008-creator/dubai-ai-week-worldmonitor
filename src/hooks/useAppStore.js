@@ -66,13 +66,13 @@ export function useAppStore() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem('foodbridgeRecords');
+    const stored = localStorage.getItem('worldMonitorRecordsV2');
     if (stored) {
       setRecords(JSON.parse(stored));
     } else {
       seedRecords().then(seed => {
         setRecords(seed);
-        localStorage.setItem('foodbridgeRecords', JSON.stringify(seed));
+        localStorage.setItem('worldMonitorRecordsV2', JSON.stringify(seed));
       });
     }
     setIsLoaded(true);
@@ -80,7 +80,7 @@ export function useAppStore() {
 
   const saveRecords = (newRecords) => {
     setRecords(newRecords);
-    localStorage.setItem('foodbridgeRecords', JSON.stringify(newRecords));
+    localStorage.setItem('worldMonitorRecordsV2', JSON.stringify(newRecords));
   };
 
   const addRecord = (record) => {

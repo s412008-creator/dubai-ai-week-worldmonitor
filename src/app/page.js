@@ -68,7 +68,9 @@ export default function DashboardPage() {
   const { records, isLoaded, addRecord, clearRecords } = useAppStore();
   const [layers, setLayers] = useState({ 
     routes: true, destinations: true, stations: true, 
-    cctv: true, hotspots: true, military: true, pipelines: true 
+    cctv: true, hotspots: true, military: true, pipelines: true,
+    cables: true, satellites: true, energy: true, finance: true,
+    weather: true, shipping: true, cyber: true, social: true, drones: true, assets: true
   });
   const [showIntake, setShowIntake] = useState(false);
   const [formData, setFormData] = useState({ sourceType: 'supermarket', sourceName: '', neighborhood: 'centrum', category: 'bakery', weightKg: 10, condition: 'fresh' });
@@ -296,6 +298,16 @@ export default function DashboardPage() {
             <LayerToggle active={layers.routes} onClick={() => toggleLayer('routes')} icon={<Activity size={14} color="#F59E0B"/>} label="Active Routes" />
             <LayerToggle active={layers.pipelines} onClick={() => toggleLayer('pipelines')} icon={<Activity size={14} color="#666"/>} label="Global Arc Connectors" />
             <LayerToggle active={layers.military} onClick={() => toggleLayer('military')} icon={<Crosshair size={14} color="#EAB308"/>} label="Radar Nodes (Pulse)" />
+            <LayerToggle active={layers.cables} onClick={() => toggleLayer('cables')} icon={<Plug size={14} color="#0EA5E9"/>} label="Submarine Cables" />
+            <LayerToggle active={layers.satellites} onClick={() => toggleLayer('satellites')} icon={<Globe2 size={14} color="#8B5CF6"/>} label="Orbital Satellites" />
+            <LayerToggle active={layers.energy} onClick={() => toggleLayer('energy')} icon={<Activity size={14} color="#F59E0B"/>} label="Energy Grid Load" />
+            <LayerToggle active={layers.finance} onClick={() => toggleLayer('finance')} icon={<TrendingUp size={14} color="#10B981"/>} label="Financial Vectors" />
+            <LayerToggle active={layers.weather} onClick={() => toggleLayer('weather')} icon={<CloudRain size={14} color="#3B82F6"/>} label="Severe Weather Fronts" />
+            <LayerToggle active={layers.shipping} onClick={() => toggleLayer('shipping')} icon={<Globe2 size={14} color="#6366F1"/>} label="Global Shipping Lanes" />
+            <LayerToggle active={layers.cyber} onClick={() => toggleLayer('cyber')} icon={<AlertTriangle size={14} color="#EF4444"/>} label="Cyber Attack Vectors" />
+            <LayerToggle active={layers.social} onClick={() => toggleLayer('social')} icon={<Activity size={14} color="#EC4899"/>} label="Social Sentiment Map" />
+            <LayerToggle active={layers.drones} onClick={() => toggleLayer('drones')} icon={<Target size={14} color="#8B5CF6"/>} label="Autonomous Drone Swarms" />
+            <LayerToggle active={layers.assets} onClick={() => toggleLayer('assets')} icon={<Crosshair size={14} color="#EAB308"/>} label="Strategic Assets" />
           </div>
           <div style={{ padding: '12px', borderTop: '1px solid #333' }}>
             <button className="btn-primary" style={{ width: '100%', padding: '8px', display: 'flex', justifyContent: 'center' }} onClick={() => setShowIntake(!showIntake)}>

@@ -15,39 +15,59 @@ const AMSTERDAM_CENTER = [4.8952, 52.3702];
 const randomPoint = (radius) => [AMSTERDAM_CENTER[0] + (Math.random() - 0.5) * radius * 2, AMSTERDAM_CENTER[1] + (Math.random() - 0.5) * radius];
 
 // Generate intense mock data for "God Mode"
-const LOCAL_NODES = Array.from({length: 80}).map(() => [
+const HUBS = Array.from({length: 6}).map(() => [
   AMSTERDAM_CENTER[0] + (Math.random()-0.5)*0.25, 
   AMSTERDAM_CENTER[1] + (Math.random()-0.5)*0.15
 ]);
 
-const MOCK_ARCS = Array.from({length: 120}).map(() => {
-  const startIdx = Math.floor(Math.random() * LOCAL_NODES.length);
-  let endIdx = Math.floor(Math.random() * LOCAL_NODES.length);
-  while (endIdx === startIdx) endIdx = Math.floor(Math.random() * LOCAL_NODES.length);
-  
-  const rand = Math.random();
-  let type = 'data';
-  if (rand > 0.8) type = 'critical';
-  else if (rand > 0.5) type = 'logistics';
+const EDGES = Array.from({length: 80}).map(() => [
+  AMSTERDAM_CENTER[0] + (Math.random()-0.5)*0.3, 
+  AMSTERDAM_CENTER[1] + (Math.random()-0.5)*0.2
+]);
 
-  return {
-    start: LOCAL_NODES[startIdx],
-    end: LOCAL_NODES[endIdx],
-    type
-  };
+const MOCK_ARCS = [];
+EDGES.forEach(edge => {
+  const hub = HUBS[Math.floor(Math.random() * HUBS.length)];
+  MOCK_ARCS.push({ start: edge, end: hub, type: Math.random() > 0.5 ? 'critical' : 'logistics' });
+});
+HUBS.forEach((h1, i) => {
+  HUBS.forEach((h2, j) => {
+    if (i < j) MOCK_ARCS.push({ start: h1, end: h2, type: 'data' });
+  });
 });
 
-const MOCK_TRIPS = Array.from({length: 100}).map(() => {
+const MOCK_TRIPS = Array.from({length: 150}).map(() => {
   const t0 = Math.random() * 1000;
   return {
-    path: [randomPoint(0.1), randomPoint(0.08), randomPoint(0.05), randomPoint(0.08), randomPoint(0.1)],
+    path: Array.from({length: 5}).map(() => randomPoint(0.12)),
     timestamps: [t0, t0 + 200, t0 + 400, t0 + 600, t0 + 800],
     color: Math.random() > 0.5 ? [16, 185, 129] : [59, 130, 246]
   };
 });
 
-const mockHotspots = Array.from({length: 50}).map(() => ({ pos: randomPoint(0.08) }));
-const mockBases = Array.from({length: 8}).map(() => ({ pos: randomPoint(0.15) }));
+const mockHotspots = Array.from({length: 50}).map(() => ({ pos: randomPoint(0.12) }));
+const mockBases = Array.from({length: 12}).map(() => ({ pos: randomPoint(0.15) }));
+
+const MOCK_CABLES = Array.from({length: 8}).map(() => ({
+  path: [randomPoint(0.4), randomPoint(0.3), randomPoint(0.2), randomPoint(0.3)]
+}));
+const MOCK_SHIPPING = Array.from({length: 8}).map(() => ({
+  path: [randomPoint(0.4), randomPoint(0.3), randomPoint(0.25)]
+}));
+const MOCK_FINANCE = Array.from({length: 40}).map(() => ({
+  start: randomPoint(0.25), end: randomPoint(0.25)
+}));
+const MOCK_CYBER = Array.from({length: 60}).map(() => {
+  const t0 = Math.random() * 1000;
+  return {
+    path: [randomPoint(0.3), randomPoint(0.15)],
+    timestamps: [t0, t0 + 300],
+    color: [239, 68, 68]
+  };
+});
+const MOCK_POINTS = Array.from({length: 250}).map(() => ({
+  pos: randomPoint(0.3), type: Math.floor(Math.random() * 5)
+}));
 
 export default function DeckGLTracker({ homeless, stations, movements, layersActive }) {
   const [mounted, setMounted] = useState(false);
@@ -115,6 +135,41 @@ export default function DeckGLTracker({ homeless, stations, movements, layersAct
           colorRange: [[25,22,22,50], [239,68,68,150], [239,68,68,200]]
         })
       );
+    }
+
+    // --- 10 NEW GOD-MODE LAYERS ---
+    if (layersActive.cables) {
+      layerArray.push(new PathLayer({ id: 'mock-cables', data: MOCK_CABLES, getPath: d => d.path, getColor: [14, 165, 233, 150], getWidth: 2, widthMinPixels: 2 }));
+    }
+    if (layersActive.shipping) {
+      layerArray.push(new PathLayer({ id: 'mock-shipping', data: MOCK_SHIPPING, getPath: d => d.path, getColor: [99, 102, 241, 150], getWidth: 2, widthMinPixels: 2 }));
+    }
+    if (layersActive.finance) {
+      layerArray.push(new ArcLayer({ id: 'mock-finance', data: MOCK_FINANCE, getSourcePosition: d => d.start, getTargetPosition: d => d.end, getSourceColor: [16, 185, 129, 150], getTargetColor: [16, 185, 129, 0], getWidth: 2, getHeight: 0.5 }));
+    }
+    if (layersActive.cyber) {
+      layerArray.push(new TripsLayer({ id: 'mock-cyber', data: MOCK_CYBER, getPath: d => d.path, getTimestamps: d => d.timestamps, getColor: d => d.color, opacity: 0.9, widthMinPixels: 3, trailLength: 300, currentTime: time }));
+    }
+    if (layersActive.satellites) {
+      const satData = MOCK_POINTS.filter(d => d.type === 0).map(d => ({ pos: [d.pos[0] + (time/1800)*0.2, d.pos[1] - (time/1800)*0.2] }));
+      layerArray.push(new ScatterplotLayer({ id: 'mock-satellites', data: satData, getPosition: d => d.pos, getFillColor: [139, 92, 246, 255], getRadius: 80, radiusMinPixels: 3 }));
+    }
+    if (layersActive.energy) {
+      layerArray.push(new ScatterplotLayer({ id: 'mock-energy', data: MOCK_POINTS.filter(d => d.type === 1), getPosition: d => d.pos, getFillColor: [245, 158, 11, 30], getRadius: 1000 }));
+    }
+    if (layersActive.weather) {
+      layerArray.push(new ScatterplotLayer({ id: 'mock-weather', data: MOCK_POINTS.filter(d => d.type === 2), getPosition: d => d.pos, getFillColor: [59, 130, 246, 20], getRadius: 2000 }));
+    }
+    if (layersActive.social) {
+      const socialPulse = (time % 80) * 8;
+      layerArray.push(new ScatterplotLayer({ id: 'mock-social', data: MOCK_POINTS.filter(d => d.type === 3), getPosition: d => d.pos, getFillColor: [236, 72, 153, Math.max(0, 200 - socialPulse*2)], getRadius: socialPulse, radiusMinPixels: 2 }));
+    }
+    if (layersActive.drones) {
+      const droneData = MOCK_POINTS.filter(d => d.type === 4).map(d => ({ pos: [d.pos[0] + Math.sin(time/20)*0.003, d.pos[1] + Math.cos(time/20)*0.003] }));
+      layerArray.push(new ScatterplotLayer({ id: 'mock-drones', data: droneData, getPosition: d => d.pos, getFillColor: [139, 92, 246, 200], getRadius: 40, radiusMinPixels: 2 }));
+    }
+    if (layersActive.assets) {
+      layerArray.push(new ScatterplotLayer({ id: 'mock-assets', data: HUBS, getPosition: d => d, getFillColor: [234, 179, 8, 255], getRadius: 150, radiusMinPixels: 6, stroked: true, getLineColor: [0,0,0], lineWidthMinPixels: 2 }));
     }
 
     // Real Data Layers
