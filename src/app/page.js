@@ -10,13 +10,24 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 const DeckGLTracker = dynamic(() => import('../components/DeckGLTracker'), { ssr: false });
 
 const HISTORY_SEED = [
-  { day: 'Mon', supermarket: 118, restaurant: 54, hotel: 38 },
-  { day: 'Tue', supermarket: 132, restaurant: 61, hotel: 42 },
-  { day: 'Wed', supermarket: 109, restaurant: 58, hotel: 35 },
-  { day: 'Thu', supermarket: 145, restaurant: 66, hotel: 51 },
-  { day: 'Fri', supermarket: 160, restaurant: 80, hotel: 74 },
-  { day: 'Sat', supermarket: 171, restaurant: 92, hotel: 88 }
+  { supermarket: 118, restaurant: 54, hotel: 38 },
+  { supermarket: 132, restaurant: 61, hotel: 42 },
+  { supermarket: 109, restaurant: 58, hotel: 35 },
+  { supermarket: 145, restaurant: 66, hotel: 51 },
+  { supermarket: 160, restaurant: 80, hotel: 74 },
+  { supermarket: 171, restaurant: 92, hotel: 88 }
 ];
+
+const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+// Labels for the `count` days immediately before today, oldest first, so the
+// bar right before "Today" always lands on yesterday's actual weekday.
+function getRecentWeekdayLabels(count) {
+  const today = new Date().getDay();
+  const labels = [];
+  for (let i = count; i >= 1; i--) labels.push(WEEKDAY_LABELS[(today - i + 7) % 7]);
+  return labels;
+}
 
 // Helper: Typewriter Hook
 function useTypewriter(text, speed = 30) {
@@ -111,7 +122,8 @@ export default function DashboardPage() {
   const chartData = useMemo(() => {
     const todayTotals = { supermarket: 0, restaurant: 0, hotel: 0 };
     records.forEach(r => { if (todayTotals[r.sourceType] !== undefined) todayTotals[r.sourceType] += r.weightKg; });
-    const data = [...HISTORY_SEED];
+    const dayLabels = getRecentWeekdayLabels(HISTORY_SEED.length);
+    const data = HISTORY_SEED.map((v, i) => ({ day: dayLabels[i], ...v }));
     data.push({ day: 'Today', supermarket: Math.round(todayTotals.supermarket), restaurant: Math.round(todayTotals.restaurant), hotel: Math.round(todayTotals.hotel) });
     const weatherFactor = 1.1; 
     const last3 = data.slice(-3);
@@ -207,7 +219,7 @@ export default function DashboardPage() {
           {Array.from({length: 20}).map((_, i) => (
             <span key={i} style={{marginRight: '30px'}}>
               <span className="led led-green" style={{marginRight: 6, animationDelay: `${Math.random()}s`}}></span>
-              [STREAM_ID_{Math.random().toString(36).substring(2,6).toUpperCase()}] INTERCEPT: {Math.random()*90}N, {Math.random()*180}E - PKT_SIZE: {Math.floor(Math.random()*1024)}MB
+              [STREAM_ID_{Math.random().toString(36).substring(2,6).toUpperCase()}] INTERCEPT: {Math.random()*90}N, {Math.random()*180}E - PKT_SIZE: {Math.max(5, Math.floor(Math.random()*1024))}MB
             </span>
           ))}
         </div>
@@ -220,8 +232,8 @@ export default function DashboardPage() {
           <div style={{ display: 'flex', gap: '4px' }}>
             {[1,2,3,4].map(i => <div key={i} className={i===1 ? "led led-green" : "led led-red"} style={{animationDelay: `${i*0.2}s`}} />)}
           </div>
-          <div className="glitch-text" data-text="MONITOR" style={{ fontWeight: 'bold', letterSpacing: '2px', fontSize: '14px' }}>MONITOR</div>
-          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>FoodBridge Engine Active</span>
+          <div className="glitch-text" data-text="FOODBRIDGE MONITOR" style={{ fontWeight: 'bold', letterSpacing: '2px', fontSize: '14px' }}>FOODBRIDGE MONITOR</div>
+          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Engine Active</span>
           
           <button className="btn">
             <Target size={12} style={{display:'inline', marginRight:4}}/> AMSTERDAM TRIAGE
@@ -233,7 +245,20 @@ export default function DashboardPage() {
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '10px', color: '#0ea5e9', fontFamily: 'monospace' }}>
           {timeStr}
-          <input type="password" placeholder="Claude API Key (Option)" value={apiKey} onChange={e => setApiKey(e.target.value)} style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid #333', color: '#fff', padding: '4px', width: '120px' }} />
+          <span
+            title="Sent to our server only to generate this rationale, then discarded — never stored, logged, or added to a URL. Kept in memory in your browser tab only."
+            style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+          >
+            <input
+              type="password"
+              placeholder="Claude API Key (Optional)"
+              value={apiKey}
+              onChange={e => setApiKey(e.target.value)}
+              autoComplete="off"
+              style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid #333', color: '#fff', padding: '4px', width: '120px' }}
+            />
+            <Info size={11} color="#555" />
+          </span>
           <button className="btn" onClick={handleLogout} style={{ color: 'var(--accent-red)' }}>
             <LogOut size={12} style={{ display: 'inline', marginRight: 4 }} /> LOGOUT
           </button>

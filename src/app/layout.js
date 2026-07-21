@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Oasis AI: Food Sustainability",
-  description: "Sustainable surplus food distribution for Dubai AI Week",
+  title: "FoodBridge Monitor",
+  description: "FoodBridge Monitor: an Amsterdam surplus-food redistribution pilot, built for Dubai AI Week",
 };
 
 export default function RootLayout({ children }) {
