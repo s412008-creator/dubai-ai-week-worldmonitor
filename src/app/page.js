@@ -285,7 +285,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Left Layer Panel */}
-        <div className="panel" style={{ position: 'absolute', top: '1rem', left: '1rem', width: '260px', bottom: '270px', zIndex: 20 }}>
+        <div className="panel" style={{ position: 'absolute', top: '1rem', left: '1rem', width: '260px', bottom: '1rem', zIndex: 20 }}>
           <Target className="spin-slow" size={16} color="rgba(255,255,255,0.1)" style={{position: 'absolute', top: 4, right: 4}} />
           <div className="panel-header"><span>LAYERS</span><span>▼</span></div>
           <div style={{ flex: 1, overflowY: 'auto' }}>

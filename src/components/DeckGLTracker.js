@@ -57,7 +57,7 @@ export default function DeckGLTracker({ homeless, stations, movements, layersAct
   useEffect(() => {
     setMounted(true);
     const animate = () => {
-      setTime(t => (t + 1) % 1000);
+      setTime(t => (t + 2) % 1800);
       animationRef.current = requestAnimationFrame(animate);
     };
     animate();
