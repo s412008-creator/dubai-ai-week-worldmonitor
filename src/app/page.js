@@ -188,10 +188,10 @@ export default function DashboardPage() {
     <div className="dashboard-layout">
       {/* 4. Boot Sequence Overlay */}
       <div className="boot-screen">
-        <div>> INITIALIZING MAINFRAME...</div>
-        <div>> DECRYPTING SPATIAL DATA...</div>
-        <div>> LOAD MODULE 'FOODBRIDGE_TRIAGE'... OK.</div>
-        <div style={{ color: '#fff' }}>> ACCESS GRANTED.</div>
+        <div>&gt; INITIALIZING MAINFRAME...</div>
+        <div>&gt; DECRYPTING SPATIAL DATA...</div>
+        <div>&gt; LOAD MODULE 'FOODBRIDGE_TRIAGE'... OK.</div>
+        <div style={{ color: '#fff' }}>&gt; ACCESS GRANTED.</div>
       </div>
 
       <div className="bg-grid"></div>
