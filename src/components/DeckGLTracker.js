@@ -15,13 +15,9 @@ const AMSTERDAM_CENTER = [4.8952, 52.3702];
 const randomPoint = (radius) => [AMSTERDAM_CENTER[0] + (Math.random() - 0.5) * radius * 2, AMSTERDAM_CENTER[1] + (Math.random() - 0.5) * radius];
 
 // Generate intense mock data for "God Mode"
-const EUROPE_NODES = [
-  [2.3522, 48.8566], [-0.1276, 51.5074], [13.4050, 52.5200], [4.3517, 50.8503], // Paris, London, Berlin, Brussels
-  [9.1900, 45.4642], [-3.7038, 40.4168], [14.4378, 50.0755], [21.0122, 52.2297], // Milan, Madrid, Prague, Warsaw
-  [18.0686, 59.3293], [10.7522, 59.9139], [12.4964, 41.9028], [23.7275, 37.9838] // Stockholm, Oslo, Rome, Athens
-].concat(Array.from({length: 40}).map(() => [AMSTERDAM_CENTER[0] + (Math.random()-0.5)*30, AMSTERDAM_CENTER[1] + (Math.random()-0.5)*20]));
+const LOCAL_NODES = Array.from({length: 40}).map(() => [AMSTERDAM_CENTER[0] + (Math.random()-0.5)*0.15, AMSTERDAM_CENTER[1] + (Math.random()-0.5)*0.1]);
 
-const MOCK_ARCS = EUROPE_NODES.map(coord => ({
+const MOCK_ARCS = LOCAL_NODES.map(coord => ({
   start: AMSTERDAM_CENTER,
   end: coord,
   type: Math.random() > 0.5 ? 'outbound' : 'inbound'
