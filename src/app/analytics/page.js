@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useAppStore } from '../../hooks/useAppStore';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, CloudRain, Globe2, ArrowLeft } from 'lucide-react';
+import { TrendingUp, Globe2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 const HISTORY_SEED = [
@@ -44,25 +44,25 @@ export default function AnalyticsPage() {
     <div className="dashboard-layout" style={{ display: 'flex', flexDirection: 'column' }}>
       <header className="top-nav" style={{ justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <Globe2 size={16} color="#10B981" />
-          <div className="glitch-text" data-text="FOODBRIDGE MONITOR" style={{ fontWeight: 'bold', letterSpacing: '2px', fontSize: '14px' }}>FOODBRIDGE MONITOR</div>
-          <Link href="/" style={{ marginLeft: 20, color: '#fff', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}><ArrowLeft size={14}/> Back to Map</Link>
+          <Globe2 size={20} color="var(--primary)" />
+          <div style={{ fontWeight: '800', letterSpacing: '1px', fontSize: '16px', color: 'var(--text-main)' }}>FOODBRIDGE</div>
+          <Link href="/" style={{ marginLeft: 24, color: 'var(--text-muted)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, fontWeight: '500' }}><ArrowLeft size={16}/> Back to Map</Link>
         </div>
       </header>
 
-      <div style={{ padding: '2rem', flex: 1, maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
-        <h2 style={{ color: '#fff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: 8 }}><TrendingUp/> AI SURPLUS FORECAST</h2>
-        <div className="panel" style={{ height: '600px', padding: '20px' }}>
+      <div style={{ padding: '32px', flex: 1, maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
+        <h2 style={{ color: 'var(--text-main)', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: 8, fontSize: '20px', fontWeight: '600' }}><TrendingUp size={24} color="var(--primary)" /> AI SURPLUS FORECAST</h2>
+        <div className="panel" style={{ height: '600px', padding: '24px' }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
-              <XAxis dataKey="day" stroke="#888" tick={{fontSize: 12, fontFamily: 'monospace'}} />
-              <YAxis stroke="#888" tick={{fontSize: 12, fontFamily: 'monospace'}} />
-              <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.8)', border: '1px solid #333', backdropFilter: 'blur(4px)' }} itemStyle={{ fontSize: '14px' }} />
-              <Legend iconType="rect" wrapperStyle={{ fontSize: '12px', paddingTop: 20 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+              <XAxis dataKey="day" stroke="var(--text-muted)" tick={{fontSize: 13}} />
+              <YAxis stroke="var(--text-muted)" tick={{fontSize: 13}} />
+              <RechartsTooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text-main)' }} itemStyle={{ fontSize: '14px' }} />
+              <Legend iconType="rect" wrapperStyle={{ fontSize: '13px', paddingTop: 20 }} />
               <Bar dataKey="supermarket" stackId="a" fill="#3B82F6" name="Supermarket" />
               <Bar dataKey="restaurant" stackId="a" fill="#8B5CF6" name="Restaurant" />
-              <Bar dataKey="hotel" stackId="a" fill="#D97706" name="Hotel (Pred)" />
+              <Bar dataKey="hotel" stackId="a" fill="#F59E0B" name="Hotel (Pred)" />
             </BarChart>
           </ResponsiveContainer>
         </div>

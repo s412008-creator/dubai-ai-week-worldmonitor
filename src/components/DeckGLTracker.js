@@ -8,7 +8,7 @@ import { TripsLayer } from '@deck.gl/geo-layers';
 import Map from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 const INITIAL_VIEW_STATE = { longitude: 4.8952, latitude: 52.3702, zoom: 12, pitch: 55, bearing: -15 };
 
 const AMSTERDAM_CENTER = [4.8952, 52.3702];

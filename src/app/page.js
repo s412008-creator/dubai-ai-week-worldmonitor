@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Globe2, Target, BarChart2, List, RefreshCw } from 'lucide-react';
+import { Globe2, Target, BarChart2, List, RefreshCw, Plus, X } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useAppStore } from '../hooks/useAppStore';
@@ -34,11 +34,6 @@ export default function DashboardPage() {
   }, []);
   
   const toggleLayer = (key) => setLayers(prev => ({ ...prev, [key]: !prev[key] }));
-
-  const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    window.location.href = '/login';
-  };
 
   const deckData = { movements: [], homeless: [], stations: [] };
   
@@ -141,34 +136,34 @@ export default function DashboardPage() {
   if (!isLoaded) return null;
 
   return (
-    <div className="dashboard-layout" style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      <header className="top-nav" style={{ justifyContent: 'space-between' }}>
+    <div className="dashboard-layout">
+      <header className="top-nav">
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <Globe2 size={16} color="#10B981" />
-          <div className="glitch-text" data-text="FOODBRIDGE" style={{ fontWeight: 'bold', letterSpacing: '2px', fontSize: '14px' }}>FOODBRIDGE</div>
+          <Globe2 size={20} color="var(--primary)" />
+          <div style={{ fontWeight: '800', letterSpacing: '1px', fontSize: '16px', color: 'var(--text-main)' }}>FOODBRIDGE</div>
           
-          <div style={{ display: 'flex', gap: '20px', marginLeft: '2rem' }}>
-            <Link href="/" style={{ color: '#10B981', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 'bold' }}><Target size={14}/> LIVE MAP</Link>
-            <Link href="/analytics" style={{ color: '#888', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}><BarChart2 size={14}/> ANALYTICS</Link>
-            <Link href="/records" style={{ color: '#888', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}><List size={14}/> RECORDS</Link>
+          <div style={{ display: 'flex', gap: '24px', marginLeft: '2rem' }}>
+            <Link href="/" style={{ color: 'var(--primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, fontWeight: '600' }}><Target size={16}/> Map View</Link>
+            <Link href="/analytics" style={{ color: 'var(--text-muted)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, fontWeight: '500' }}><BarChart2 size={16}/> Analytics</Link>
+            <Link href="/records" style={{ color: 'var(--text-muted)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, fontWeight: '500' }}><List size={16}/> Records</Link>
           </div>
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '12px', color: '#888' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '13px', color: 'var(--text-muted)' }}>
           {timeStr}
-          <button className="btn" onClick={loadDemoData} style={{ color: '#0ea5e9', display: 'flex', gap: 4, alignItems: 'center' }}><RefreshCw size={12}/> RELOAD DEMO DATA</button>
-          <button className="btn-primary" onClick={() => setShowIntake(true)} style={{ padding: '6px 16px' }}>+ NEW INTAKE</button>
+          <button className="btn" onClick={loadDemoData}><RefreshCw size={14} style={{marginRight: 6}}/> Reload Demo Data</button>
+          <button className="btn-primary" onClick={() => setShowIntake(true)}><Plus size={14} style={{marginRight: 4}}/> New Intake</button>
         </div>
       </header>
 
-      <div className="main-workspace" style={{ flex: 1, position: 'relative' }}>
+      <div className="main-workspace">
         <div className="map-container">
           <DeckGLTracker homeless={deckData.homeless} stations={deckData.stations} movements={deckData.movements} layersActive={layers} />
         </div>
 
         {/* Floating Layer Toggles */}
-        <div className="panel" style={{ position: 'absolute', bottom: '2rem', left: '2rem', width: '220px', zIndex: 20 }}>
-          <div className="panel-header"><span>MAP LAYERS</span></div>
+        <div className="panel" style={{ position: 'absolute', bottom: '2rem', left: '2rem', width: '240px', zIndex: 20 }}>
+          <div className="panel-header">MAP LAYERS</div>
           <div style={{ padding: '8px' }}>
             <LayerToggle active={layers.stations} onClick={() => toggleLayer('stations')} label="Food Sources" />
             <LayerToggle active={layers.destinations} onClick={() => toggleLayer('destinations')} label="Shelters & Facilities" />
@@ -176,77 +171,124 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* The Ultimate Intake Modal */}
+        {/* The Clean Intake Modal */}
         {showIntake && (
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div className="panel" style={{ width: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
-              <div className="panel-header" style={{ background: '#10B981', color: '#000' }}>
-                <span>NEW INTAKE TASK</span>
-                <button className="btn" onClick={() => setShowIntake(false)} style={{ color: '#000' }}>X</button>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(4px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="panel" style={{ width: '550px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+              
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface-light)' }}>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>New Surplus Intake</h3>
+                <button onClick={() => setShowIntake(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={20}/></button>
               </div>
               
-              <div style={{ display: 'flex', borderBottom: '1px solid #333', background: '#111' }}>
-                <button onClick={() => setIntakeTab('rule')} style={{ flex: 1, padding: '12px', border: 'none', background: intakeTab === 'rule' ? '#222' : 'transparent', color: intakeTab === 'rule' ? '#10B981' : '#888', cursor: 'pointer' }}>Rule-Based</button>
-                <button onClick={() => setIntakeTab('hotel')} style={{ flex: 1, padding: '12px', border: 'none', background: intakeTab === 'hotel' ? '#222' : 'transparent', color: intakeTab === 'hotel' ? '#10B981' : '#888', cursor: 'pointer' }}>Hotel Prediction</button>
-                <button onClick={() => setIntakeTab('ai')} style={{ flex: 1, padding: '12px', border: 'none', background: intakeTab === 'ai' ? '#222' : 'transparent', color: intakeTab === 'ai' ? '#10B981' : '#888', cursor: 'pointer' }}>Gemini AI</button>
+              <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
+                <button onClick={() => setIntakeTab('rule')} style={{ flex: 1, padding: '12px', border: 'none', background: 'transparent', borderBottom: intakeTab === 'rule' ? '2px solid var(--primary)' : '2px solid transparent', color: intakeTab === 'rule' ? 'var(--primary)' : 'var(--text-muted)', fontWeight: intakeTab === 'rule' ? '600' : '500', cursor: 'pointer' }}>Rule-Based</button>
+                <button onClick={() => setIntakeTab('hotel')} style={{ flex: 1, padding: '12px', border: 'none', background: 'transparent', borderBottom: intakeTab === 'hotel' ? '2px solid var(--primary)' : '2px solid transparent', color: intakeTab === 'hotel' ? 'var(--primary)' : 'var(--text-muted)', fontWeight: intakeTab === 'hotel' ? '600' : '500', cursor: 'pointer' }}>Hotel Prediction</button>
+                <button onClick={() => setIntakeTab('ai')} style={{ flex: 1, padding: '12px', border: 'none', background: 'transparent', borderBottom: intakeTab === 'ai' ? '2px solid var(--primary)' : '2px solid transparent', color: intakeTab === 'ai' ? 'var(--primary)' : 'var(--text-muted)', fontWeight: intakeTab === 'ai' ? '600' : '500', cursor: 'pointer' }}>Gemini AI</button>
               </div>
 
               {intakeTab === 'rule' && (
-                <form onSubmit={handleRuleSubmit} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <select value={ruleForm.sourceType} onChange={e => setRuleForm({...ruleForm, sourceType: e.target.value})} className="form-input">
-                    <option value="supermarket">Supermarket</option>
-                    <option value="restaurant">Restaurant</option>
-                  </select>
-                  <input type="text" placeholder="Source Name (e.g. Albert Heijn)" value={ruleForm.sourceName} onChange={e => setRuleForm({...ruleForm, sourceName: e.target.value})} className="form-input" required />
-                  <select value={ruleForm.neighborhood} onChange={e => setRuleForm({...ruleForm, neighborhood: e.target.value})} className="form-input">
-                    {getNeighborhoods().map(n => <option key={n.id} value={n.id}>{n.name}</option>)}
-                  </select>
-                  <select value={ruleForm.category} onChange={e => setRuleForm({...ruleForm, category: e.target.value})} className="form-input">
-                    <option value="bakery">Bakery</option>
-                    <option value="produce">Produce (fruit/veg)</option>
-                    <option value="dairy">Dairy</option>
-                    <option value="meat">Meat</option>
-                  </select>
-                  <input type="number" placeholder="Weight (kg)" value={ruleForm.weightKg} onChange={e => setRuleForm({...ruleForm, weightKg: e.target.value})} className="form-input" min="0.1" step="0.1" required />
-                  <select value={ruleForm.condition} onChange={e => setRuleForm({...ruleForm, condition: e.target.value})} className="form-input">
-                    <option value="fresh">Fresh</option>
-                    <option value="near_expiry">Near expiry</option>
-                    <option value="spoiled">Spoiled</option>
-                  </select>
-                  <button type="submit" className="btn-primary" style={{ padding: '12px', marginTop: '10px' }}>CLASSIFY & ROUTE</button>
+                <form onSubmit={handleRuleSubmit} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>Source Type</label>
+                    <select value={ruleForm.sourceType} onChange={e => setRuleForm({...ruleForm, sourceType: e.target.value})} className="form-input">
+                      <option value="supermarket">Supermarket</option>
+                      <option value="restaurant">Restaurant</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>Source Name</label>
+                    <input type="text" placeholder="e.g. Albert Heijn" value={ruleForm.sourceName} onChange={e => setRuleForm({...ruleForm, sourceName: e.target.value})} className="form-input" required />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>Neighborhood</label>
+                    <select value={ruleForm.neighborhood} onChange={e => setRuleForm({...ruleForm, neighborhood: e.target.value})} className="form-input">
+                      {getNeighborhoods().map(n => <option key={n.id} value={n.id}>{n.name}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>Category</label>
+                      <select value={ruleForm.category} onChange={e => setRuleForm({...ruleForm, category: e.target.value})} className="form-input">
+                        <option value="bakery">Bakery</option>
+                        <option value="produce">Produce (fruit/veg)</option>
+                        <option value="dairy">Dairy</option>
+                        <option value="meat">Meat</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>Weight (kg)</label>
+                      <input type="number" value={ruleForm.weightKg} onChange={e => setRuleForm({...ruleForm, weightKg: e.target.value})} className="form-input" min="0.1" step="0.1" required />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>Condition</label>
+                    <select value={ruleForm.condition} onChange={e => setRuleForm({...ruleForm, condition: e.target.value})} className="form-input">
+                      <option value="fresh">Fresh</option>
+                      <option value="near_expiry">Near expiry</option>
+                      <option value="spoiled">Spoiled</option>
+                    </select>
+                  </div>
+                  <button type="submit" className="btn-primary" style={{ padding: '12px', marginTop: '8px', fontSize: '14px', width: '100%' }}>Classify & Route</button>
                 </form>
               )}
 
               {intakeTab === 'hotel' && (
-                <form onSubmit={handleHotelSubmit} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <input type="text" placeholder="Hotel Name" value={hotelForm.sourceName} onChange={e => setHotelForm({...hotelForm, sourceName: e.target.value})} className="form-input" required />
-                  <select value={hotelForm.neighborhood} onChange={e => setHotelForm({...hotelForm, neighborhood: e.target.value})} className="form-input">
-                    {getNeighborhoods().map(n => <option key={n.id} value={n.id}>{n.name}</option>)}
-                  </select>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <label style={{ fontSize: '12px', color: '#888' }}>Total Rooms<br/><input type="number" value={hotelForm.rooms} onChange={e => setHotelForm({...hotelForm, rooms: e.target.value})} className="form-input" style={{width:'100%', marginTop:4}}/></label>
-                    <label style={{ fontSize: '12px', color: '#888' }}>Occupancy (%)<br/><input type="number" value={hotelForm.occupancy} onChange={e => setHotelForm({...hotelForm, occupancy: e.target.value})} className="form-input" style={{width:'100%', marginTop:4}}/></label>
+                <form onSubmit={handleHotelSubmit} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>Hotel Name</label>
+                    <input type="text" placeholder="e.g. Hotel Amstel" value={hotelForm.sourceName} onChange={e => setHotelForm({...hotelForm, sourceName: e.target.value})} className="form-input" required />
                   </div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '13px', color: '#ccc' }}><input type="checkbox" checked={hotelForm.breakfast} onChange={e => setHotelForm({...hotelForm, breakfast: e.target.checked})}/> Breakfast buffet served</label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '13px', color: '#ccc' }}><input type="checkbox" checked={hotelForm.restaurant} onChange={e => setHotelForm({...hotelForm, restaurant: e.target.checked})}/> À la carte restaurant service</label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '13px', color: '#ccc' }}><input type="checkbox" checked={hotelForm.banquet} onChange={e => setHotelForm({...hotelForm, banquet: e.target.checked})}/> Banquet/event today</label>
-                  {hotelForm.banquet && (
-                    <label style={{ fontSize: '12px', color: '#888' }}>Banquet Guests<input type="number" value={hotelForm.banquetGuests} onChange={e => setHotelForm({...hotelForm, banquetGuests: e.target.value})} className="form-input" style={{width:'100%', marginTop:4}}/></label>
-                  )}
-                  <button type="submit" className="btn-primary" style={{ padding: '12px', marginTop: '10px' }}>PREDICT & ROUTE</button>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>Neighborhood</label>
+                    <select value={hotelForm.neighborhood} onChange={e => setHotelForm({...hotelForm, neighborhood: e.target.value})} className="form-input">
+                      {getNeighborhoods().map(n => <option key={n.id} value={n.id}>{n.name}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>Total Rooms</label>
+                      <input type="number" value={hotelForm.rooms} onChange={e => setHotelForm({...hotelForm, rooms: e.target.value})} className="form-input" required/>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>Occupancy (%)</label>
+                      <input type="number" value={hotelForm.occupancy} onChange={e => setHotelForm({...hotelForm, occupancy: e.target.value})} className="form-input" required/>
+                    </div>
+                  </div>
+                  
+                  <div style={{ background: 'var(--surface-light)', padding: '16px', borderRadius: '6px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '13px', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={hotelForm.breakfast} onChange={e => setHotelForm({...hotelForm, breakfast: e.target.checked})} style={{ width: '16px', height: '16px' }}/> Breakfast buffet served
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '13px', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={hotelForm.restaurant} onChange={e => setHotelForm({...hotelForm, restaurant: e.target.checked})} style={{ width: '16px', height: '16px' }}/> À la carte restaurant service
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '13px', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={hotelForm.banquet} onChange={e => setHotelForm({...hotelForm, banquet: e.target.checked})} style={{ width: '16px', height: '16px' }}/> Banquet/event today
+                    </label>
+                    {hotelForm.banquet && (
+                      <div style={{ marginTop: '4px' }}>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>Banquet Guests</label>
+                        <input type="number" value={hotelForm.banquetGuests} onChange={e => setHotelForm({...hotelForm, banquetGuests: e.target.value})} className="form-input" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <button type="submit" className="btn-primary" style={{ padding: '12px', marginTop: '8px', fontSize: '14px', width: '100%' }}>Predict & Route</button>
                 </form>
               )}
 
               {intakeTab === 'ai' && (
-                <form onSubmit={handleAiSubmit} style={{ padding: '20px' }}>
-                  <p style={{ color: '#ccc', marginBottom: '16px', fontSize: '12px', lineHeight: '1.5' }}>
+                <form onSubmit={handleAiSubmit} style={{ padding: '24px' }}>
+                  <p style={{ color: 'var(--text-muted)', marginBottom: '16px', fontSize: '13px', lineHeight: '1.5' }}>
                     Describe the surplus food items. The Gemini AI will automatically classify them as edible or inedible, calculate macronutrients, and route them to the optimal shelter or waste-to-energy facility.
                   </p>
                   <textarea 
                     value={foodInput}
                     onChange={e => setFoodInput(e.target.value)}
                     placeholder="e.g. 50 boxes of near-expiry milk, 12 trays of leftover rice and chicken from the banquet..."
-                    style={{ width: '100%', height: '120px', background: '#111', color: '#fff', border: '1px solid #333', padding: '12px', marginBottom: '16px', fontFamily: 'monospace' }}
+                    className="form-input"
+                    style={{ height: '120px', resize: 'vertical', marginBottom: '16px' }}
                   />
                   <input
                     type="password"
@@ -254,10 +296,10 @@ export default function DashboardPage() {
                     value={apiKey}
                     onChange={e => setApiKey(e.target.value)}
                     className="form-input"
-                    style={{ marginBottom: '16px' }}
+                    style={{ marginBottom: '24px' }}
                   />
-                  <button type="submit" disabled={isProcessing} className="btn-primary" style={{ width: '100%', padding: '12px', fontSize: '14px', textAlign: 'center' }}>
-                    {isProcessing ? 'ANALYZING VIA GEMINI AI...' : 'ANALYZE & ROUTE'}
+                  <button type="submit" disabled={isProcessing} className="btn-primary" style={{ width: '100%', padding: '12px', fontSize: '14px' }}>
+                    {isProcessing ? 'Analyzing via Gemini...' : 'Analyze & Route'}
                   </button>
                 </form>
               )}
@@ -265,23 +307,20 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
-      
-      {/* Dynamic styles for inputs */}
-      <style dangerouslySetInnerHTML={{__html: `
-        .form-input {
-          background: #111; color: #fff; border: 1px solid #333; padding: 10px; width: 100%; box-sizing: border-box;
-        }
-        .form-input:focus { outline: none; border-color: #10B981; }
-      `}} />
     </div>
   );
 }
 
 function LayerToggle({ active, onClick, label }) {
   return (
-    <div className={`layer-row ${active ? 'active' : ''}`} onClick={onClick} style={{ padding: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-      <div style={{ marginRight: '12px' }}>{active ? <span className="led led-green"/> : <span className="led led-red"/>}</div>
-      <div style={{ flex: 1, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
+    <div className={`layer-row ${active ? 'active' : ''}`} onClick={onClick}>
+      <div style={{ marginRight: '12px', display: 'flex', alignItems: 'center' }}>
+        {active ? 
+          <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--primary)', boxShadow: '0 0 8px var(--primary-dim)' }}/> : 
+          <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--border)' }}/>
+        }
+      </div>
+      <div style={{ flex: 1 }}>{label}</div>
     </div>
   );
 }

@@ -55,8 +55,15 @@ const seedRecords = async () => {
   };
 
   addSR({ sourceType: 'supermarket', sourceName: 'Albert Heijn — Centrum', neighborhood: 'centrum', category: 'bakery', weightKg: 18, condition: 'near_expiry' });
+  addSR({ sourceType: 'supermarket', sourceName: 'Jumbo — Oost', neighborhood: 'oost', category: 'produce', weightKg: 32, condition: 'near_expiry' });
+  addSR({ sourceType: 'supermarket', sourceName: 'Albert Heijn — West', neighborhood: 'west', category: 'dairy', weightKg: 14, condition: 'expired' });
+  addSR({ sourceType: 'restaurant', sourceName: 'Café De Reiger', neighborhood: 'centrum', category: 'prepared_meals', weightKg: 9, condition: 'fresh' });
   addSR({ sourceType: 'restaurant', sourceName: 'Restaurant Zuidas Bites', neighborhood: 'zuid', category: 'meat', weightKg: 11, condition: 'spoiled' });
+  addSR({ sourceType: 'supermarket', sourceName: 'Jumbo — Nieuw-West', neighborhood: 'nieuw-west', category: 'produce', weightKg: 27, condition: 'near_expiry' });
+  addSR({ sourceType: 'restaurant', sourceName: 'Noorderlicht Café', neighborhood: 'noord', category: 'bakery', weightKg: 7, condition: 'fresh' });
   addH({ sourceName: 'Hotel Amstel Waterfront', neighborhood: 'centrum', totalRooms: 220, occupancyPct: 82, breakfast: true, restaurant: true, banquet: true, banquetGuests: 60 });
+  addH({ sourceName: 'Hotel Zuidplein Business', neighborhood: 'zuid', totalRooms: 150, occupancyPct: 68, breakfast: true, restaurant: false, banquet: false, banquetGuests: 0 });
+  addH({ sourceName: 'Hotel Oost Canal View', neighborhood: 'oost', totalRooms: 90, occupancyPct: 75, breakfast: true, restaurant: true, banquet: false, banquetGuests: 0 });
   
   return records;
 };
